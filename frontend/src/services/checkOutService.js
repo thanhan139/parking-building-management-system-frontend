@@ -16,6 +16,10 @@ const checkOutService = {
   addSurcharge: (body) => api.post('/api/check-out/surcharge', body),
 
   checkOut: (body) => api.post('/api/check-out', body),
+
+  startPayos: (ticketCode) => api.post('/api/check-out/payos', null, { params: { ticketCode } }),
+
+  paymentStatus: (ticketCode) => api.get('/api/check-out/payment-status', { params: { ticketCode } }),
 };
 
 const ERROR_TEXT = {

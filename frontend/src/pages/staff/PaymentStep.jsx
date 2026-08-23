@@ -5,10 +5,10 @@ import { money } from './format';
 const METHODS = [
   { value: 'CASH', label: 'Tiền mặt' },
   { value: 'BANK_TRANSFER', label: 'Chuyển khoản' },
-  { value: 'VNPAY', label: 'VNPay' },
+  { value: 'VNPAY', label: 'Quét mã QR' },
 ];
 
-export default function PaymentStep({ step = 4, result, paid, paying, onPay, onNext }) {
+export default function PaymentStep({ step = 4, result, paid, paying, onPay, onNext, onVnPay }) {
   const [method, setMethod] = useState('CASH');
 
   if (paid) {
@@ -48,16 +48,18 @@ export default function PaymentStep({ step = 4, result, paid, paying, onPay, onN
         block
         size="large"
         loading={paying}
-        onClick={() => onPay(method)}
+        onClick={() => (method === 'VNPAY' ? onVnPay() : onPay(method))}
         style={{
           height: 60, fontSize: 17, fontWeight: 700,
           background: '#2e7d4f', borderColor: '#2e7d4f', color: '#fff',
         }}
       >
-        ĐÃ THU TIỀN — MỞ BARRIER
+        {method === 'VNPAY' ? 'HIỆN MÃ QR CHO KHÁCH QUÉT' : 'ĐÃ THU TIỀN — MỞ BARRIER'}
       </Button>
       <p style={{ color: '#c0392b', fontSize: 12, textAlign: 'center', marginTop: 8, marginBottom: 0 }}>
-        Bấm xong không rút lại được.
+        {method === 'VNPAY'
+          ? 'Khách quét xong, màn hình tự chuyển.'
+          : 'Bấm xong không rút lại được.'}
       </p>
     </Card>
   );

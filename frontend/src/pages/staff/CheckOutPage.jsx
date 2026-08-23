@@ -5,6 +5,7 @@ import ScanTicket from './ScanTicket';
 import ExitPhotos from './ExitPhotos';
 import FeeSummary from './FeeSummary';
 import PaymentStep from './PaymentStep';
+import PayosQr from './PayosQr';
 
 const EXIT_GATE = 'CONG-RA';
 
@@ -16,12 +17,14 @@ export default function CheckOutPage() {
   const [busy, setBusy] = useState(false);
   // true khi vé quét ra còn thiếu ảnh, tức là có thêm một bước chụp ảnh
   const [photoStep, setPhotoStep] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const nextVehicle = () => {
     setTicket(null);
     setResult(null);
     setPaid(false);
     setPhotoStep(false);
+    setQrOpen(false);
   };
 
   const findTicket = async (code) => {
@@ -99,11 +102,30 @@ export default function CheckOutPage() {
           <>
             <Alert type="info" showIcon message="Chưa ghi gì vào sổ. Xem lại bao nhiêu lần cũng được." />
             <FeeSummary step={photoStep ? 3 : 2} result={result} onAddSurcharge={addSurcharge} />
-            <PaymentStep step={photoStep ? 4 : 3} result={result} paid={false} paying={busy} onPay={pay} />
+            <PaymentStep
+              step={photoStep ? 4 : 3}
+              result={result}
+              paid={false}
+              paying={busy}
+              onPay={pay}
+              onVnPay={() => setQrOpen(true)}
+            />
           </>
         )}
 
         {paid && <PaymentStep result={result} paid onNext={nextVehicle} />}
+
+        {qrOpen && (
+          <PayosQr
+            ticketCode={ticket}
+            onClose={() => setQrOpen(false)}
+            onPaid={(status) => {
+              setQrOpen(false);
+              setResult((truoc) => ({ ...truoc, paymentId: status.paymentId, paidAt: status.paidAt }));
+              setPaid(true);
+            }}
+          />
+        )}
       </div>
     </div>
   );
