@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
-import { ApartmentOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
@@ -10,6 +10,13 @@ import InternalLayout from './pages/InternalLayout';
 import FacilityPage from './pages/manager/FacilityPage';
 import GuestCheckInPage from './pages/GuestCheckInPage';
 import CheckOutPage from './pages/staff/CheckOutPage';
+import PricingPage from './pages/admin/PricingPage';
+import PaymentPage from './pages/admin/PaymentPage';
+
+const MENU_ADMIN = [
+  { key: '/admin/pricing', icon: <DollarOutlined />, label: 'Biểu giá' },
+  { key: '/admin/payments', icon: <ProfileOutlined />, label: 'Giao dịch' },
+];
 
 const MENU_MANAGER = [
   { key: '/manager/facility', icon: <ApartmentOutlined />, label: 'Hạ tầng bãi' },
@@ -25,6 +32,14 @@ function StaffRoute({ children }) {
 
   if (!user) return <Navigate to="/internal/login" replace />;
   if (!isStaff) return <Navigate to="/" replace />;
+  return children;
+}
+
+function AdminRoute({ children }) {
+  const { user, isAdmin } = useAuth();
+
+  if (!user) return <Navigate to="/internal/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -58,6 +73,14 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/internal/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+
+              <Route
+                path="/admin"
+                element={<AdminRoute><InternalLayout title="Quản trị hệ thống" color="#b45309" navItems={MENU_ADMIN} /></AdminRoute>}
+              >
+                <Route path="pricing" element={<PricingPage />} />
+                <Route path="payments" element={<PaymentPage />} />
+              </Route>
 
               <Route
                 path="/manager"

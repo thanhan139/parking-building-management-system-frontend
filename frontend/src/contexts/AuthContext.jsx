@@ -37,6 +37,7 @@ export function AuthProvider({ children }) {
   };
 
   const isStaff = ['STAFF', 'MANAGER', 'ADMIN'].includes(role);
+  const isAdmin = role === 'ADMIN';
 
   const register = async (data) => {
     return await authService.register(data);
@@ -50,7 +51,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, isStaff, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, role, isStaff, isAdmin, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

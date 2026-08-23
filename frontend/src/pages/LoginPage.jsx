@@ -14,7 +14,10 @@ const DEMO_ACCOUNTS = [
 const DEMO_PASSWORD = 'admin';
 
 function homeForRole() {
-  return roleFromToken() === 'STAFF' ? '/staff/check-in' : '/manager/facility';
+  const role = roleFromToken();
+  if (role === 'STAFF') return '/staff/check-in';
+  if (role === 'ADMIN') return '/admin/pricing';
+  return '/manager/facility';
 }
 
 export default function LoginPage() {
