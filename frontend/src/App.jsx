@@ -2,9 +2,19 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import { AuthProvider } from './contexts/AuthContext';
+import { useAuth } from './contexts/AuthContext';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import GuestCheckInPage from './pages/GuestCheckInPage';
+
+function StaffRoute({ children }) {
+  const { user, isStaff } = useAuth();
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isStaff) return <Navigate to="/" replace />;
+  return children;
+}
 
 export default function App() {
   return (
@@ -32,6 +42,10 @@ export default function App() {
               <Route path="/reservations" element={<MainPage />} />
               <Route path="/subscriptions" element={<MainPage />} />
               <Route path="/payments" element={<MainPage />} />
+              <Route
+                path="/staff/guest-check-in"
+                element={<StaffRoute><GuestCheckInPage /></StaffRoute>}
+              />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="*" element={<Navigate to="/" />} />
