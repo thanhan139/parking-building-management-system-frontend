@@ -32,6 +32,7 @@ export default function App() {
               <Route path="/reservations" element={<MainPage />} />
               <Route path="/subscriptions" element={<MainPage />} />
               <Route path="/payments" element={<MainPage />} />
+              <Route path="/profile" element={<MainPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="*" element={<Navigate to="/" />} />

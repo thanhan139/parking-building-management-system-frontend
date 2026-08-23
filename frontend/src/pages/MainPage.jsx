@@ -13,17 +13,18 @@ import SlotsPage from './SlotsPage';
 import ReservationsPage from './ReservationsPage';
 import SubscriptionsPage from './SubscriptionsPage';
 import PaymentHistoryPage from './PaymentHistoryPage';
+import ProfilePage from './ProfilePage';
 
 const { Header } = Layout;
 const { Text } = Typography;
 
 const navItems = [
   { key: '/', icon: <DashboardOutlined />, label: 'Tổng quan' },
-  { key: 'vehicles', icon: <CarOutlined />, label: 'Xe của tôi' },
-  { key: 'slots', icon: <SearchOutlined />, label: 'Tìm chỗ đỗ' },
-  { key: 'reservations', icon: <CalendarOutlined />, label: 'Đặt chỗ' },
-  { key: 'subscriptions', icon: <CreditCardOutlined />, label: 'Gói thuê bao' },
-  { key: 'payments', icon: <HistoryOutlined />, label: 'Lịch sử thanh toán' },
+  { key: '/vehicles', icon: <CarOutlined />, label: 'Xe của tôi' },
+  { key: '/slots', icon: <SearchOutlined />, label: 'Tìm chỗ đỗ' },
+  { key: '/reservations', icon: <CalendarOutlined />, label: 'Đặt chỗ' },
+  { key: '/subscriptions', icon: <CreditCardOutlined />, label: 'Gói thuê bao' },
+  { key: '/payments', icon: <HistoryOutlined />, label: 'Lịch sử thanh toán' },
 ];
 
 export default function MainPage() {
@@ -52,6 +53,7 @@ export default function MainPage() {
           <Text type="secondary" style={{ fontSize: 12 }}>{user?.email || ''}</Text>
         </div>
       ),
+      onClick: () => navigate('/profile'),
     },
     { type: 'divider' },
     {
@@ -72,6 +74,7 @@ export default function MainPage() {
       case 'reservations': return <ReservationsPage key="reservations" />;
       case 'subscriptions': return <SubscriptionsPage key="subscriptions" />;
       case 'payments': return <PaymentHistoryPage key="payments" />;
+      case 'profile': return <ProfilePage key="profile" />;
       default: return <DashboardPage key="dashboard" />;
     }
   };
@@ -114,7 +117,7 @@ export default function MainPage() {
         </div>
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
           <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <Avatar size={32} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #1677ff, #69b1ff)' }} />
+            <Avatar size={32} src={user?.avatarUrl} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #1677ff, #69b1ff)' }} />
             <span style={{ fontWeight: 500, fontSize: 14 }}>{user?.fullName || 'User'}</span>
           </div>
         </Dropdown>

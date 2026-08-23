@@ -28,6 +28,14 @@ export function AuthProvider({ children }) {
     return await authService.register(data);
   };
 
+  const updateUser = (data) => {
+    setUser((prev) => {
+      const merged = { ...prev, ...data };
+      localStorage.setItem('user', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -35,7 +43,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

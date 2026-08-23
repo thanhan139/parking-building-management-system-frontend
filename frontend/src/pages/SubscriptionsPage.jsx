@@ -92,7 +92,7 @@ export default function SubscriptionsPage() {
         <Title level={4} style={{ margin: 0 }}>Gói đăng ký</Title>
         <Space>
           <Select placeholder="Chọn xe" style={{ width: 250 }} onChange={handleVehicleChange}>
-            {vehicles.map((v) => <Select.Option key={v.id} value={v.id}>{v.plateNumber}</Select.Option>)}
+            {vehicles.map((v) => <Select.Option key={v.vehicleId} value={v.vehicleId}>{v.plateNumber}</Select.Option>)}
           </Select>
           {selectedVehicle && <Button type="primary" icon={<CreditCardOutlined />} onClick={openPurchaseModal}>Mua gói mới</Button>}
         </Space>

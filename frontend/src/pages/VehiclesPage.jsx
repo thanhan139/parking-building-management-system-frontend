@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, message, Popconfirm, Image, Upload } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, message, Popconfirm, Image, Upload, List, Avatar, Empty } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, UploadOutlined, TeamOutlined, UserOutlined, CrownFilled } from '@ant-design/icons';
 import vehicleService from '../services/vehicleService';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
+
+const driverRoles = [
+  { code: 'FAMILY_MEMBER', name: 'Thành viên gia đình' },
+  { code: 'OWNER', name: 'Chủ sở hữu' },
+];
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState([]);
@@ -11,6 +16,12 @@ export default function VehiclesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [form] = Form.useForm();
+  const [driverModalOpen, setDriverModalOpen] = useState(false);
+  const [driverVehicle, setDriverVehicle] = useState(null);
+  const [drivers, setDrivers] = useState([]);
+  const [driversLoading, setDriversLoading] = useState(false);
+  const [addingDriver, setAddingDriver] = useState(false);
+  const [driverForm] = Form.useForm();
 
   const vehicleTypes = [
     { code: 'MOTORBIKE', name: 'Motorbike' },
@@ -74,6 +85,48 @@ export default function VehiclesPage() {
     }
   };
 
+  const openDriverModal = async (vehicle) => {
+    setDriverVehicle(vehicle);
+    setDriverModalOpen(true);
+    fetchDrivers(vehicle.vehicleId);
+  };
+
+  const fetchDrivers = async (vehicleId) => {
+    try {
+      setDriversLoading(true);
+      const res = await vehicleService.getVehicleDrivers(vehicleId);
+      setDrivers(res.data?.result || []);
+    } catch (err) {
+      message.error('Không thể tải danh sách người lái');
+    } finally {
+      setDriversLoading(false);
+    }
+  };
+
+  const handleAddDriver = async (values) => {
+    try {
+      setAddingDriver(true);
+      await vehicleService.addVehicleDriver(driverVehicle.vehicleId, values);
+      message.success('Nhượng quyền thành công!');
+      driverForm.resetFields();
+      fetchDrivers(driverVehicle.vehicleId);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Không thể thêm người lái');
+    } finally {
+      setAddingDriver(false);
+    }
+  };
+
+  const handleRemoveDriver = async (driverId) => {
+    try {
+      await vehicleService.removeVehicleDriver(driverVehicle.vehicleId, driverId);
+      message.success('Đã thu hồi quyền');
+      fetchDrivers(driverVehicle.vehicleId);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Không thể xóa người lái');
+    }
+  };
+
   const columns = [
     { title: 'ID', dataIndex: 'vehicleId', key: 'vehicleId', width: 60 },
     { title: 'Biển số', dataIndex: 'plateNumber', key: 'plateNumber', render: (t) => <Tag color="blue">{t}</Tag> },
@@ -87,9 +140,10 @@ export default function VehiclesPage() {
       render: (t) => <Tag color={t === 'ACTIVE' ? 'green' : 'red'}>{t}</Tag>,
     },
     {
-      title: 'Thao tác', key: 'action', width: 120,
+      title: 'Thao tác', key: 'action', width: 160,
       render: (_, record) => (
         <Space>
+          <Button type="link" icon={<TeamOutlined />} onClick={() => openDriverModal(record)} title="Nhượng quyền" />
           <Button type="link" icon={<EditOutlined />} onClick={() => { setEditingVehicle(record); form.setFieldsValue(record); setModalOpen(true); }} />
           <Popconfirm title="Xóa xe này?" onConfirm={() => handleDelete(record.vehicleId)}>
             <Button type="link" danger icon={<DeleteOutlined />} />
@@ -143,6 +197,94 @@ export default function VehiclesPage() {
             </Upload>
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={driverVehicle ? `Nhượng quyền xe ${driverVehicle.plateNumber}` : 'Nhượng quyền xe'}
+        open={driverModalOpen}
+        onCancel={() => { setDriverModalOpen(false); setDriverVehicle(null); setDrivers([]); driverForm.resetFields(); }}
+        footer={null}
+        width={640}
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+          Chia sẻ quyền sử dụng xe cho thành viên khác (người thân, tài xế). Họ có thể dùng xe này để đặt chỗ đỗ.
+        </Text>
+
+        <List
+          loading={driversLoading}
+          dataSource={drivers.filter((d) => d.driverRole !== 'OWNER')}
+          locale={{ emptyText: <Empty description="Chưa nhượng quyền cho ai" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+          renderItem={(item) => (
+            <List.Item
+              actions={[
+                <Popconfirm title="Thu hồi quyền sử dụng xe?" onConfirm={() => handleRemoveDriver(item.id)}>
+                  <Button type="link" danger size="small" icon={<DeleteOutlined />}>Thu hồi</Button>
+                </Popconfirm>,
+              ]}
+            >
+              <List.Item.Meta
+                avatar={<Avatar icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #1677ff, #69b1ff)' }} />}
+                title={
+                  <Space>
+                    <span>{item.fullName || item.phone || 'Người dùng'}</span>
+                    <Tag color={item.driverRole === 'OWNER' ? 'gold' : 'blue'}>
+                      {item.driverRole === 'OWNER' ? 'Chủ sở hữu' : 'Thành viên'}
+                    </Tag>
+                  </Space>
+                }
+                description={
+                  <Space split={<span>·</span>}>
+                    {item.phone && <span>{item.phone}</span>}
+                    {item.email && <span>{item.email}</span>}
+                    {item.idCardNo && <span>CCCD: {item.idCardNo}</span>}
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+          style={{ marginBottom: 24, maxHeight: 300, overflowY: 'auto' }}
+        />
+
+        <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+          <Title level={5} style={{ marginTop: 0 }}>Thêm người lái mới</Title>
+          <Form form={driverForm} layout="vertical" onFinish={handleAddDriver}>
+            <Space size={12} style={{ display: 'flex' }} wrap>
+              <Form.Item
+                name="phoneNumber"
+                label="Số điện thoại"
+                rules={[{ required: true, message: 'Nhập SĐT!' }]}
+                style={{ marginBottom: 0, minWidth: 160 }}
+              >
+                <Input placeholder="0912345678" />
+              </Form.Item>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[{ type: 'email', message: 'Email không hợp lệ!' }]}
+                style={{ marginBottom: 0, minWidth: 180 }}
+              >
+                <Input placeholder="example@email.com" />
+              </Form.Item>
+              <Form.Item
+                name="driverRole"
+                label="Vai trò"
+                initialValue="FAMILY_MEMBER"
+                rules={[{ required: true, message: 'Chọn vai trò!' }]}
+                style={{ marginBottom: 0, minWidth: 170 }}
+              >
+                <Select options={driverRoles.map((r) => ({ value: r.code, label: `${r.name} (${r.code})` }))} />
+              </Form.Item>
+            </Space>
+            <Space size={12} style={{ marginTop: 12 }} wrap>
+              <Form.Item name="idCardNo" style={{ marginBottom: 0, minWidth: 200 }}>
+                <Input placeholder="Số CCCD (tùy chọn)" maxLength={20} />
+              </Form.Item>
+              <Button type="primary" htmlType="submit" icon={<PlusOutlined />} loading={addingDriver}>
+                Nhượng quyền
+              </Button>
+            </Space>
+          </Form>
+        </div>
       </Modal>
     </div>
   );

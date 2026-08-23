@@ -10,6 +10,9 @@ const vehicleService = {
   }),
   deleteVehicle: (id) => api.delete(`/api/vehicles/${id}`),
   getVehicleTypes: () => api.get('/api/vehicle-types'),
+  getVehicleDrivers: (vehicleId) => api.get(`/api/vehicles/${vehicleId}/drivers`),
+  addVehicleDriver: (vehicleId, data) => api.post(`/api/vehicles/${vehicleId}/drivers`, data),
+  removeVehicleDriver: (vehicleId, driverId) => api.delete(`/api/vehicles/${vehicleId}/drivers/${driverId}`),
 };
 
 export default vehicleService;
