@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Select, Button, Tag, Typography, Space, message, Modal } from 'antd';
+import { Table, Card, Select, Button, Tag, Typography, Space, Modal, App } from 'antd';
 import { CreditCardOutlined } from '@ant-design/icons';
 import vehicleService from '../services/vehicleService';
 import subscriptionService from '../services/subscriptionService';
@@ -8,6 +8,7 @@ const { Title } = Typography;
 const statusColors = { PENDING: 'orange', ACTIVE: 'green', EXPIRED: 'default', CANCELLED: 'red' };
 
 export default function SubscriptionsPage() {
+  const { message } = App.useApp();
   const [vehicles, setVehicles] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
