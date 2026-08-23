@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Tag, Typography, message } from 'antd';
+import { Table, Tag, Typography, App } from 'antd';
 import paymentService from '../services/paymentService';
 import dayjs from 'dayjs';
 
@@ -10,6 +10,7 @@ const statusColors = {
 };
 
 export default function PaymentHistoryPage() {
+  const { message } = App.useApp();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
 

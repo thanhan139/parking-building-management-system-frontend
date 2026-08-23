@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, message, Popconfirm, Image, Upload, List, Avatar, Empty } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, Popconfirm, Image, Upload, List, Avatar, Empty, App } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, UploadOutlined, TeamOutlined, UserOutlined, CrownFilled } from '@ant-design/icons';
 import vehicleService from '../services/vehicleService';
 
@@ -11,6 +11,7 @@ const driverRoles = [
 ];
 
 export default function VehiclesPage() {
+  const { message } = App.useApp();
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);

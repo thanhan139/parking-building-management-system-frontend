@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, message, Popconfirm, Descriptions } from 'antd';
+import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, Popconfirm, Descriptions, App } from 'antd';
 import { PlusOutlined, CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import reservationService from '../services/reservationService';
 import vehicleService from '../services/vehicleService';
@@ -13,6 +13,7 @@ const statusColors = {
 };
 
 export default function ReservationsPage() {
+  const { message } = App.useApp();
   const [reservations, setReservations] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);

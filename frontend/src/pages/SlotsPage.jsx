@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Select, DatePicker, Button, Tag, Typography, Space, Empty, Spin, message } from 'antd';
+import { Card, Row, Col, Select, DatePicker, Button, Tag, Typography, Space, Empty, Spin, App } from 'antd';
 import { SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import slotService from '../services/slotService';
 import dayjs from 'dayjs';
@@ -14,6 +14,7 @@ const vehicleTypes = [
 ];
 
 export default function SlotsPage() {
+  const { message } = App.useApp();
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({ vehicleTypeId: null, startTime: null, endTime: null });

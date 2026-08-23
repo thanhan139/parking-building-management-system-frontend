@@ -1,21 +1,23 @@
 import { useEffect, useState } from 'react';
-import { Card, Form, Input, Button, Avatar, Upload, Row, Col, Typography, message, Divider } from 'antd';
+import { Card, Form, Input, Button, Avatar, Upload, Row, Col, Typography, Divider, App } from 'antd';
 import { UserOutlined, UploadOutlined, LockOutlined, SaveOutlined } from '@ant-design/icons';
 import userService from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
-const beforeUpload = (file) => {
-  const isImage = file.type.startsWith('image/');
-  const isLt2M = file.size / 1024 / 1024 < 2;
-  if (!isImage) message.error('Chỉ được tải lên file ảnh!');
-  if (!isLt2M) message.error('Ảnh phải nhỏ hơn 2MB!');
-  return isImage && isLt2M ? false : Upload.LIST_IGNORE;
-};
-
 export default function ProfilePage() {
+  const { message } = App.useApp();
   const { user, updateUser } = useAuth();
+
+  const beforeUpload = (file) => {
+    const isImage = file.type.startsWith('image/');
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isImage) message.error('Chỉ được tải lên file ảnh!');
+    if (!isLt2M) message.error('Ảnh phải nhỏ hơn 2MB!');
+    return isImage && isLt2M ? false : Upload.LIST_IGNORE;
+  };
+
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [loading, setLoading] = useState(true);
