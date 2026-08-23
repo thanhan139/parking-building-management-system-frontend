@@ -1,23 +1,23 @@
 import { useState } from 'react';
 import { Button, Card, Input, Space, Typography } from 'antd';
 import { QrcodeOutlined } from '@ant-design/icons';
-import QuetQr from './QuetQr';
+import QrScanner from './QrScanner';
 
 const { Text } = Typography;
 
-export default function QuetVe({ onTim, dangTim, veHienTai, onXeTiepTheo }) {
-  const [ma, setMa] = useState('');
-  const [moQr, setMoQr] = useState(false);
+export default function ScanTicket({ onFind, finding, ticketCode, onNext }) {
+  const [code, setCode] = useState('');
+  const [scanOpen, setScanOpen] = useState(false);
 
-  if (veHienTai) {
+  if (ticketCode) {
     return (
       <Card>
         <Space size="large" align="center">
           <div>
             <Text type="secondary" style={{ fontSize: 12 }}>MÃ VÉ</Text>
-            <div style={{ fontSize: 22, fontWeight: 700 }}>{veHienTai}</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{ticketCode}</div>
           </div>
-          <Button size="large" onClick={onXeTiepTheo}>Xe tiếp theo</Button>
+          <Button size="large" onClick={onNext}>Xe tiếp theo</Button>
         </Space>
       </Card>
     );
@@ -30,16 +30,16 @@ export default function QuetVe({ onTim, dangTim, veHienTai, onXeTiepTheo }) {
         size="large"
         block
         icon={<QrcodeOutlined />}
-        onClick={() => setMoQr(true)}
+        onClick={() => setScanOpen(true)}
         style={{ height: 64, fontSize: 17, fontWeight: 600, marginBottom: 12 }}
       >
         QUÉT MÃ QR
       </Button>
 
-      <QuetQr
-        open={moQr}
-        onDong={() => setMoQr(false)}
-        onQuetTrung={(code) => { setMoQr(false); onTim(code); }}
+      <QrScanner
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onScanned={(code) => { setScanOpen(false); onFind(code); }}
       />
 
       <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
@@ -49,14 +49,14 @@ export default function QuetVe({ onTim, dangTim, veHienTai, onXeTiepTheo }) {
         <Input
           size="large"
           autoFocus
-          value={ma}
+          value={code}
           placeholder="GUEST-XXXXXXXX"
-          onChange={(e) => setMa(e.target.value.trim().toUpperCase())}
-          onPressEnter={() => ma && onTim(ma)}
+          onChange={(e) => setCode(e.target.value.trim().toUpperCase())}
+          onPressEnter={() => code && onFind(code)}
           style={{ fontSize: 18, height: 48 }}
         />
-        <Button size="large" loading={dangTim} disabled={!ma}
-                onClick={() => onTim(ma)} style={{ height: 48, paddingInline: 24 }}>
+        <Button size="large" loading={finding} disabled={!code}
+                onClick={() => onFind(code)} style={{ height: 48, paddingInline: 24 }}>
           Tìm vé
         </Button>
       </Space.Compact>

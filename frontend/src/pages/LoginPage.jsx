@@ -1,33 +1,33 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message, Divider } from 'antd';
 import { LockOutlined, PhoneOutlined, RightOutlined } from '@ant-design/icons';
-import { useAuth, vaiTuToken } from '../contexts/AuthContext';
+import { useAuth, roleFromToken } from '../contexts/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
-const TAI_KHOAN_DEMO = [
-  { role: 'ADMIN', phone: 'admin', mo_ta: 'biểu giá · giao dịch · phân quyền' },
-  { role: 'MANAGER', phone: 'manager', mo_ta: 'hạ tầng bãi · khiếu nại' },
-  { role: 'STAFF', phone: 'staff', mo_ta: 'xe vào · xe ra · thu tiền' },
+const DEMO_ACCOUNTS = [
+  { role: 'ADMIN', phone: 'admin', hint: 'biểu giá · giao dịch · phân quyền' },
+  { role: 'MANAGER', phone: 'manager', hint: 'hạ tầng bãi · khiếu nại' },
+  { role: 'STAFF', phone: 'staff', hint: 'xe vào · xe ra · thu tiền' },
 ];
-const MAT_KHAU_DEMO = 'admin';
+const DEMO_PASSWORD = 'admin';
 
-function trangTheoVai() {
-  return vaiTuToken() === 'STAFF' ? '/staff/check-in' : '/manager/facility';
+function homeForRole() {
+  return roleFromToken() === 'STAFF' ? '/staff/check-in' : '/manager/facility';
 }
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const noiBo = useLocation().pathname.startsWith('/internal');
+  const internal = useLocation().pathname.startsWith('/internal');
 
-  const dangNhapNhanh = async (phone) => {
+  const quickLogin = async (phone) => {
     setLoading(true);
     try {
-      await login(phone, MAT_KHAU_DEMO);
-      navigate(trangTheoVai());
+      await login(phone, DEMO_PASSWORD);
+      navigate(homeForRole());
     } catch (err) {
       message.error(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {
@@ -40,7 +40,7 @@ export default function LoginPage() {
     try {
       await login(values.phoneNumber, values.password);
       message.success('Đăng nhập thành công!');
-      navigate(noiBo ? trangTheoVai() : '/');
+      navigate(internal ? homeForRole() : '/');
     } catch (err) {
       message.error(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {
@@ -104,10 +104,10 @@ export default function LoginPage() {
             🅿️
           </div>
           <Title level={3} style={{ margin: 0, fontWeight: 700 }}>
-            {noiBo ? 'Cổng nội bộ' : 'Parking Management'}
+            {internal ? 'Cổng nội bộ' : 'Parking Management'}
           </Title>
           <Text type="secondary">
-            {noiBo ? 'Dành cho nhân viên, quản lý và quản trị' : 'Đăng nhập để gửi xe và quản lý xe của bạn'}
+            {internal ? 'Dành cho nhân viên, quản lý và quản trị' : 'Đăng nhập để gửi xe và quản lý xe của bạn'}
           </Text>
         </div>
         <Form layout="vertical" onFinish={onFinish} autoComplete="off" size="large">
@@ -138,20 +138,20 @@ export default function LoginPage() {
             </Button>
           </Form.Item>
         </Form>
-        {noiBo ? (
+        {internal ? (
           <>
             <Divider plain><Text type="secondary" style={{ fontSize: 13 }}>Tài khoản demo</Text></Divider>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {TAI_KHOAN_DEMO.map((tk) => (
+              {DEMO_ACCOUNTS.map((tk) => (
                 <Button
                   key={tk.role}
                   block
-                  onClick={() => dangNhapNhanh(tk.phone)}
+                  onClick={() => quickLogin(tk.phone)}
                   disabled={loading}
                   style={{ borderRadius: 10, height: 46, textAlign: 'left' }}
                 >
                   <span style={{ fontWeight: 600 }}>{tk.role}</span>
-                  <span style={{ color: '#8c8c8c', fontSize: 12, marginLeft: 8 }}>{tk.mo_ta}</span>
+                  <span style={{ color: '#8c8c8c', fontSize: 12, marginLeft: 8 }}>{tk.hint}</span>
                 </Button>
               ))}
             </div>

@@ -5,9 +5,9 @@ const checkOutService = {
 
   preview: (ticketCode) => api.get('/api/check-out/preview', { params: { ticketCode } }),
 
-  uploadExitPhotos: (ticketCode, gateCode, anh) => {
+  uploadExitPhotos: (ticketCode, gateCode, photos) => {
     const form = new FormData();
-    Object.entries(anh).forEach(([ten, file]) => form.append(ten, file));
+    Object.entries(photos).forEach(([field, file]) => form.append(field, file));
     return api.post('/api/check-out/photos', form, {
       params: { ticketCode, gateCode },
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -32,7 +32,7 @@ export function errorText(err) {
   return ERROR_TEXT[body?.code] || body?.message || 'Không gọi được máy chủ';
 }
 
-export function maLoi(err) {
+export function errorCode(err) {
   return err?.response?.data?.code;
 }
 

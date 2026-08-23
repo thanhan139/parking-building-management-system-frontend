@@ -4,21 +4,21 @@ import jsQR from 'jsqr';
 
 const { Text } = Typography;
 
-export default function CameraQr({ dangBat, onQuetTrung }) {
+export default function QrCamera({ active, onScanned }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const [loi, setLoi] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!dangBat) return;
+    if (!active) return;
 
     let stream = null;
-    let dungLai = false;
-    let khungHinh = null;
+    let stopped = false;
+    let frame = null;
     const video = videoRef.current;
 
-    const doc = () => {
-      if (dungLai) return;
+    const scan = () => {
+      if (stopped) return;
       const canvas = canvasRef.current;
 
       if (video?.readyState === video?.HAVE_ENOUGH_DATA && canvas) {
@@ -27,15 +27,15 @@ export default function CameraQr({ dangBat, onQuetTrung }) {
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const anh = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const ma = jsQR(anh.data, anh.width, anh.height);
-        if (ma?.data) {
-          dungLai = true;
-          onQuetTrung(ma.data.trim().toUpperCase());
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const found = jsQR(frame.data, frame.width, frame.height);
+        if (found?.data) {
+          stopped = true;
+          onScanned(found.data.trim().toUpperCase());
           return;
         }
       }
-      khungHinh = requestAnimationFrame(doc);
+      frame = requestAnimationFrame(scan);
     };
 
     navigator.mediaDevices
@@ -45,18 +45,18 @@ export default function CameraQr({ dangBat, onQuetTrung }) {
         if (!video) return;
         video.srcObject = s;
         video.play();
-        khungHinh = requestAnimationFrame(doc);
+        frame = requestAnimationFrame(scan);
       })
-      .catch((e) => setLoi(e.name === 'NotAllowedError' ? 'Bạn chưa cho phép dùng camera.' : 'Không mở được camera.'));
+      .catch((e) => setError(e.name === 'NotAllowedError' ? 'Bạn chưa cho phép dùng camera.' : 'Không mở được camera.'));
 
     return () => {
-      dungLai = true;
-      if (khungHinh) cancelAnimationFrame(khungHinh);
+      stopped = true;
+      if (frame) cancelAnimationFrame(frame);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [dangBat, onQuetTrung]);
+  }, [active, onScanned]);
 
-  if (loi) return <Alert type="warning" showIcon message={loi} description="Chọn xe từ danh sách bên dưới." style={{ marginBottom: 16 }} />;
+  if (error) return <Alert type="warning" showIcon message={error} description="Chọn xe từ danh sách bên dưới." style={{ marginBottom: 16 }} />;
 
   return (
     <div style={{

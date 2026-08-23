@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import NoiBoLayout from './pages/NoiBoLayout';
+import InternalLayout from './pages/InternalLayout';
 import FacilityPage from './pages/manager/FacilityPage';
 import GuestCheckInPage from './pages/GuestCheckInPage';
 import CheckOutPage from './pages/staff/CheckOutPage';
@@ -61,14 +61,14 @@ export default function App() {
 
               <Route
                 path="/manager"
-                element={<StaffRoute><NoiBoLayout ten="Quản lý bãi" mau="#4f46e5" navItems={MENU_MANAGER} /></StaffRoute>}
+                element={<StaffRoute><InternalLayout title="Quản lý bãi" color="#4f46e5" navItems={MENU_MANAGER} /></StaffRoute>}
               >
                 <Route path="facility" element={<FacilityPage />} />
               </Route>
 
               <Route
                 path="/staff"
-                element={<StaffRoute><NoiBoLayout ten="Nhân viên cổng" mau="#2e7d4f" navItems={MENU_STAFF} /></StaffRoute>}
+                element={<StaffRoute><InternalLayout title="Nhân viên cổng" color="#2e7d4f" navItems={MENU_STAFF} /></StaffRoute>}
               >
                 <Route path="check-in" element={<GuestCheckInPage />} />
                 <Route path="check-out" element={<CheckOutPage />} />

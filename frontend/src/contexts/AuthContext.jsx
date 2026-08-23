@@ -4,7 +4,7 @@ import authService from '../services/authService';
 const AuthContext = createContext(null);
 
 // Backend gui vai trong truong "scope" cua JWT, khong gui kem trong user.
-export function vaiTuToken() {
+export function roleFromToken() {
   try {
     const token = localStorage.getItem('token');
     return JSON.parse(atob(token.split('.')[1])).scope || null;
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState(vaiTuToken);
+  const [role, setRole] = useState(roleFromToken);
 
   const login = async (phoneNumber, password) => {
     const res = await authService.login(phoneNumber, password);
@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
     }
-    setRole(vaiTuToken());
+    setRole(roleFromToken());
     return data;
   };
 

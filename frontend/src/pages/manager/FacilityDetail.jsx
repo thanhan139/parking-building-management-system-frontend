@@ -1,18 +1,18 @@
 import { Button, Descriptions, Empty, Popconfirm, Space, Tag } from 'antd';
 import { AppstoreOutlined, BankOutlined, LayoutOutlined } from '@ant-design/icons';
-import { CATEGORY, ICON, POWER, loaiXeChoPhep } from './facilityLabels';
+import { CATEGORY, ICON, POWER, allowedCategories } from './facilityLabels';
 import { SlotGrid } from './SlotGrid';
 
 export default function FacilityDetail({ node, onEdit, onAdd, onRemove, onSlotClick }) {
   if (!node) return <Empty description="Chọn một nhánh bên trái" />;
-  if (node.type === 'building') return <ToaNha node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} />;
-  if (node.type === 'floor') return <Tang node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} />;
-  return <Khu node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} onSlotClick={onSlotClick} />;
+  if (node.type === 'building') return <BuildingPanel node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} />;
+  if (node.type === 'floor') return <FloorPanel node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} />;
+  return <ZonePanel node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} onSlotClick={onSlotClick} />;
 }
 
-function ToaNha({ node, onEdit, onAdd, onRemove }) {
+function BuildingPanel({ node, onEdit, onAdd, onRemove }) {
   const building = node.raw;
-  const soTang = building.floors.length;
+  const floorCount = building.floors.length;
 
   return (
     <>
@@ -23,7 +23,7 @@ function ToaNha({ node, onEdit, onAdd, onRemove }) {
         <Descriptions.Item label="Trạng thái">
           <Tag color={building.status === 'ACTIVE' ? 'green' : 'default'}>{building.status}</Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Số tầng">{soTang}</Descriptions.Item>
+        <Descriptions.Item label="Số tầng">{floorCount}</Descriptions.Item>
       </Descriptions>
 
       <Space wrap>
@@ -31,9 +31,9 @@ function ToaNha({ node, onEdit, onAdd, onRemove }) {
           Sửa toà nhà
         </Button>
         <Popconfirm title="Xoá toà nhà này?" okText="Xoá" cancelText="Huỷ" onConfirm={() => onRemove('building', building.id)}>
-          <Button danger disabled={soTang > 0}>Xoá toà nhà</Button>
+          <Button danger disabled={floorCount > 0}>Xoá toà nhà</Button>
         </Popconfirm>
-        {soTang > 0 && <span style={{ color: '#c0392b' }}>còn {soTang} tầng nên chưa xoá được</span>}
+        {floorCount > 0 && <span style={{ color: '#c0392b' }}>còn {floorCount} tầng nên chưa xoá được</span>}
         <Button type="primary" onClick={() => onAdd({ type: 'floor', mode: 'create', parentId: building.id })}>
           + Thêm tầng
         </Button>
@@ -42,10 +42,10 @@ function ToaNha({ node, onEdit, onAdd, onRemove }) {
   );
 }
 
-function Tang({ node, onEdit, onAdd, onRemove }) {
+function FloorPanel({ node, onEdit, onAdd, onRemove }) {
   const floor = node.raw;
-  const soKhu = floor.zones.length;
-  const day = floor.zoneCount != null && soKhu >= floor.zoneCount;
+  const zoneUsed = floor.zones.length;
+  const full = floor.zoneCount != null && zoneUsed >= floor.zoneCount;
 
   return (
     <>
@@ -62,7 +62,7 @@ function Tang({ node, onEdit, onAdd, onRemove }) {
             {floor.guestAllowed ? 'Khách vãng lai' : 'Thành viên'}
           </Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Khu">{soKhu}/{floor.zoneCount ?? '–'}</Descriptions.Item>
+        <Descriptions.Item label="ZonePanel">{zoneUsed}/{floor.zoneCount ?? '–'}</Descriptions.Item>
       </Descriptions>
 
       <Space wrap>
@@ -70,49 +70,49 @@ function Tang({ node, onEdit, onAdd, onRemove }) {
           Sửa tầng
         </Button>
         <Popconfirm title="Xoá tầng này?" okText="Xoá" cancelText="Huỷ" onConfirm={() => onRemove('floor', floor.id)}>
-          <Button danger disabled={soKhu > 0}>Xoá tầng</Button>
+          <Button danger disabled={zoneUsed > 0}>Xoá tầng</Button>
         </Popconfirm>
-        {soKhu > 0 && <span style={{ color: '#c0392b' }}>còn {soKhu} khu nên chưa xoá được</span>}
+        {zoneUsed > 0 && <span style={{ color: '#c0392b' }}>còn {zoneUsed} khu nên chưa xoá được</span>}
         <Button
           type="primary"
-          disabled={day}
+          disabled={full}
           onClick={() => onAdd({
-            type: 'zone', mode: 'create', parentId: floor.id, categoryOptions: loaiXeChoPhep(floor),
+            type: 'zone', mode: 'create', parentId: floor.id, categoryOptions: allowedCategories(floor),
           })}
         >
           + Thêm khu
         </Button>
-        {day && <span style={{ color: '#c0392b' }}>đã đủ {floor.zoneCount} khu — nâng &quot;số khu tối đa&quot; trước</span>}
+        {full && <span style={{ color: '#c0392b' }}>đã đủ {floor.zoneCount} khu — nâng &quot;số khu tối đa&quot; trước</span>}
       </Space>
     </>
   );
 }
 
-function Khu({ node, onEdit, onAdd, onRemove, onSlotClick }) {
+function ZonePanel({ node, onEdit, onAdd, onRemove, onSlotClick }) {
   const zone = node.raw;
   const floor = node.parent;
-  const soO = zone.slots.length;
+  const slotUsed = zone.slots.length;
 
   return (
     <>
-      <h3><AppstoreOutlined style={{ ...ICON, marginRight: 8 }} />Khu {zone.code} {zone.name && `– ${zone.name}`}</h3>
+      <h3><AppstoreOutlined style={{ ...ICON, marginRight: 8 }} />ZonePanel {zone.code} {zone.name && `– ${zone.name}`}</h3>
       <Descriptions size="small" column={3} style={{ marginBottom: 12 }}>
         <Descriptions.Item label="Loại xe">{CATEGORY[zone.allowedCategory]}</Descriptions.Item>
         <Descriptions.Item label="Nguồn">{POWER[zone.powerPolicy]}</Descriptions.Item>
-        <Descriptions.Item label="Ô">{soO}/{zone.slotCapacity ?? '–'}</Descriptions.Item>
+        <Descriptions.Item label="Ô">{slotUsed}/{zone.slotCapacity ?? '–'}</Descriptions.Item>
       </Descriptions>
 
       <Space wrap style={{ marginBottom: 16 }}>
         <Button onClick={() => onEdit({
           type: 'zone', mode: 'edit', id: zone.id, parentId: zone.floorId,
-          initial: zone, categoryOptions: loaiXeChoPhep(floor),
+          initial: zone, categoryOptions: allowedCategories(floor),
         })}>
           Sửa khu
         </Button>
         <Popconfirm title="Xoá khu này?" okText="Xoá" cancelText="Huỷ" onConfirm={() => onRemove('zone', zone.id)}>
-          <Button danger disabled={soO > 0}>Xoá khu</Button>
+          <Button danger disabled={slotUsed > 0}>Xoá khu</Button>
         </Popconfirm>
-        {soO > 0 && <span style={{ color: '#c0392b' }}>còn {soO} ô nên chưa xoá được</span>}
+        {slotUsed > 0 && <span style={{ color: '#c0392b' }}>còn {slotUsed} ô nên chưa xoá được</span>}
       </Space>
 
       <SlotGrid

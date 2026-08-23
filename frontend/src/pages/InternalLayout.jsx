@@ -5,12 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 
 const { Text } = Typography;
 
-export default function NoiBoLayout({ ten, mau, navItems }) {
+export default function InternalLayout({ title, color, navItems }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const duongDan = useLocation().pathname;
+  const path = useLocation().pathname;
 
-  const thoat = () => {
+  const signOut = () => {
     logout();
     navigate('/internal/login');
   };
@@ -19,27 +19,27 @@ export default function NoiBoLayout({ ten, mau, navItems }) {
     <div style={{ minHeight: '100vh', background: '#f4f6f9' }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 24, height: 60,
-        padding: '0 24px', background: '#fff', borderBottom: `3px solid ${mau}`,
+        padding: '0 24px', background: '#fff', borderBottom: `3px solid ${color}`,
         position: 'sticky', top: 0, zIndex: 99,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <div style={{
-            width: 30, height: 30, borderRadius: 8, background: mau, color: '#fff',
+            width: 30, height: 30, borderRadius: 8, background: color, color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
           }}>🅿</div>
-          <span style={{ fontWeight: 700 }}>{ten}</span>
+          <span style={{ fontWeight: 700 }}>{title}</span>
         </div>
 
         <Menu
           mode="horizontal"
-          selectedKeys={[duongDan]}
+          selectedKeys={[path]}
           items={navItems}
           onClick={({ key }) => navigate(key)}
           style={{ border: 'none', flex: 1, minWidth: 0 }}
         />
 
         <Text type="secondary" style={{ fontSize: 13 }}>{user?.fullName || ''}</Text>
-        <Button icon={<LogoutOutlined />} onClick={thoat}>Thoát</Button>
+        <Button icon={<LogoutOutlined />} onClick={signOut}>Thoát</Button>
       </div>
 
       <Outlet />

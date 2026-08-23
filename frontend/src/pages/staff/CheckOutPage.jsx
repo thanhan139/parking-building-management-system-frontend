@@ -1,78 +1,78 @@
 import { useState } from 'react';
 import { App, Alert } from 'antd';
-import checkOutService, { errorText, maLoi } from '../../services/checkOutService';
-import QuetVe from './QuetVe';
-import ChupAnhRa from './ChupAnhRa';
-import BangTien from './BangTien';
-import ThuTien from './ThuTien';
+import checkOutService, { errorText, errorCode } from '../../services/checkOutService';
+import ScanTicket from './ScanTicket';
+import ExitPhotos from './ExitPhotos';
+import FeeSummary from './FeeSummary';
+import PaymentStep from './PaymentStep';
 
-const CONG_RA = 'CONG-RA';
+const EXIT_GATE = 'CONG-RA';
 
 export default function CheckOutPage() {
   const { message } = App.useApp();
-  const [ve, setVe] = useState(null);
-  const [ketQua, setKetQua] = useState(null);
-  const [daThu, setDaThu] = useState(false);
-  const [dangChay, setDangChay] = useState(false);
+  const [ticket, setTicket] = useState(null);
+  const [result, setResult] = useState(null);
+  const [paid, setPaid] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const xeTiepTheo = () => {
-    setVe(null);
-    setKetQua(null);
-    setDaThu(false);
+  const nextVehicle = () => {
+    setTicket(null);
+    setResult(null);
+    setPaid(false);
   };
 
-  const timVe = async (ma) => {
-    setDangChay(true);
+  const findTicket = async (code) => {
+    setBusy(true);
     try {
-      const res = await checkOutService.preview(ma);
-      setVe(ma);
-      setKetQua(res.data.result);
+      const res = await checkOutService.preview(code);
+      setTicket(code);
+      setResult(res.data.result);
     } catch (err) {
-      if (maLoi(err) === 1066) {
-        setVe(ma);
-        setKetQua(null);
+      if (errorCode(err) === 1066) {
+        setTicket(code);
+        setResult(null);
         message.info('Vé hợp lệ — còn thiếu ảnh lúc ra');
       } else {
         message.error(errorText(err));
       }
     } finally {
-      setDangChay(false);
+      setBusy(false);
     }
   };
 
-  const taiAnh = async (anh) => {
-    setDangChay(true);
+  const uploadPhotos = async (photos) => {
+    setBusy(true);
     try {
-      await checkOutService.uploadExitPhotos(ve, CONG_RA, anh);
-      const res = await checkOutService.preview(ve);
-      setKetQua(res.data.result);
+      await checkOutService.uploadExitPhotos(ticket, EXIT_GATE, photos);
+      const res = await checkOutService.preview(ticket);
+      setResult(res.data.result);
     } catch (err) {
       message.error(errorText(err));
     } finally {
-      setDangChay(false);
+      setBusy(false);
     }
   };
 
-  const themPhuPhi = async (body) => {
+  const addSurcharge = async (body) => {
     try {
-      await checkOutService.addSurcharge({ ...body, ticketCode: ve });
-      const res = await checkOutService.preview(ve);
-      setKetQua(res.data.result);
+      await checkOutService.addSurcharge({ ...body, ticketCode: ticket });
+      const res = await checkOutService.preview(ticket);
+      setResult(res.data.result);
     } catch (err) {
       message.error(errorText(err));
     }
   };
 
-  const thuTien = async (method) => {
-    setDangChay(true);
+  const pay = async (method) => {
+    setBusy(true);
     try {
-      const res = await checkOutService.checkOut({ ticketCode: ve, method, exitGate: CONG_RA });
-      setKetQua(res.data.result);
-      setDaThu(true);
+      const res = await checkOutService.checkOut({ ticketCode: ticket, method, exitGate: EXIT_GATE });
+      setResult(res.data.result);
+      setPaid(true);
     } catch (err) {
       message.error(errorText(err));
     } finally {
-      setDangChay(false);
+      setBusy(false);
     }
   };
 
@@ -81,19 +81,19 @@ export default function CheckOutPage() {
       <h2 style={{ marginTop: 0 }}>Xe ra — thu tiền</h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <QuetVe onTim={timVe} dangTim={dangChay} veHienTai={ve} onXeTiepTheo={xeTiepTheo} />
+        <ScanTicket onFind={findTicket} finding={busy} ticketCode={ticket} onNext={nextVehicle} />
 
-        {ve && !ketQua && <ChupAnhRa onTaiLen={taiAnh} dangTai={dangChay} />}
+        {ticket && !result && <ExitPhotos onUpload={uploadPhotos} loading={busy} />}
 
-        {ketQua && !daThu && (
+        {result && !paid && (
           <>
             <Alert type="info" showIcon message="Chưa ghi gì vào sổ. Xem lại bao nhiêu lần cũng được." />
-            <BangTien ketQua={ketQua} onThemPhuPhi={themPhuPhi} />
-            <ThuTien ketQua={ketQua} daThu={false} dangThu={dangChay} onThu={thuTien} />
+            <FeeSummary result={result} onAddSurcharge={addSurcharge} />
+            <PaymentStep result={result} paid={false} paying={busy} onPay={pay} />
           </>
         )}
 
-        {daThu && <ThuTien ketQua={ketQua} daThu onXeTiepTheo={xeTiepTheo} />}
+        {paid && <PaymentStep result={result} paid onNext={nextVehicle} />}
       </div>
     </div>
   );

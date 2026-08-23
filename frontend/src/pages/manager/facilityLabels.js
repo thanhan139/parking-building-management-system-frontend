@@ -12,7 +12,7 @@ export const SLOT_STYLE = {
   LOCKED: { bg: '#e5e5e5', border: '#737373', label: 'Khoá' },
 };
 
-export function loaiXeChoPhep(floor) {
+export function allowedCategories(floor) {
   return [
     floor.allowCar && { value: 'CAR', label: 'Ô tô' },
     floor.allowMotorbike && { value: 'MOTORCYCLE', label: 'Xe máy' },

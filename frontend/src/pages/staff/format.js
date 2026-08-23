@@ -1,6 +1,6 @@
-export const tien = (so) => Number(so || 0).toLocaleString('vi-VN') + ' đ';
+export const money = (so) => Number(so || 0).toLocaleString('vi-VN') + ' đ';
 
-export const TEN_LY_DO = {
+export const REASON_LABEL = {
   OVERNIGHT: 'Qua đêm',
   DAILY: 'Theo ngày',
   LOST_TICKET: 'Mất thẻ',
