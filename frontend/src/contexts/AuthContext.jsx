@@ -24,6 +24,10 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  // supports both role: "STAFF" and roles: ["STAFF"] shapes from backend
+  const role = user?.role || (Array.isArray(user?.roles) ? user.roles[0] : null) || null;
+  const isStaff = ['STAFF', 'MANAGER', 'ADMIN'].includes(role);
+
   const register = async (data) => {
     return await authService.register(data);
   };
@@ -35,7 +39,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, role, isStaff, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
