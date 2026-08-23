@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, message, Popconfirm, Descriptions } from 'antd';
-import { PlusOutlined, CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import { useState, useEffect, useRef } from 'react';
+import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, message, Popconfirm, Descriptions, Input } from 'antd';
+import { PlusOutlined, CloseCircleOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
 import reservationService from '../services/reservationService';
 import vehicleService from '../services/vehicleService';
 import slotService from '../services/slotService';
@@ -21,6 +21,10 @@ export default function ReservationsPage() {
   const [detailModal, setDetailModal] = useState(null);
   const [form] = Form.useForm();
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+  const [qrModal, setQrModal] = useState(null); // { reservationId, token, expiresAt }
+  const [qrLoading, setQrLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef(null);
 
   const fetchReservations = async () => {
     setLoading(true);
@@ -54,6 +58,43 @@ export default function ReservationsPage() {
   };
 
   useEffect(() => { fetchReservations(); fetchVehicles(); }, []);
+
+  const startCountdown = (expiresAt) => {
+    clearInterval(countdownRef.current);
+    const tick = () => {
+      const secs = Math.max(0, Math.round((new Date(expiresAt) - Date.now()) / 1000));
+      setCountdown(secs);
+      if (secs === 0) clearInterval(countdownRef.current);
+    };
+    tick();
+    countdownRef.current = setInterval(tick, 1000);
+  };
+
+  const handleCreateQr = async (reservationId) => {
+    setQrLoading(true);
+    try {
+      const res = await reservationService.createQrToken(reservationId);
+      const data = res.data;
+      setQrModal({ reservationId, token: data.token, expiresAt: data.expiresAt });
+      startCountdown(data.expiresAt);
+    } catch (err) {
+      const code = err.response?.data?.code;
+      const msgs = {
+        1031: 'Xe chưa có subscription active.',
+        1062: 'Chưa đến giờ hoặc đã quá giờ check-in của reservation này.',
+        1032: 'Reservation không hợp lệ.',
+      };
+      message.error(msgs[code] || err.response?.data?.message || 'Không thể tạo mã QR');
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleCloseQr = () => {
+    clearInterval(countdownRef.current);
+    setQrModal(null);
+    setCountdown(0);
+  };
 
   const handleSubmit = async (values) => {
     try {
@@ -92,10 +133,19 @@ export default function ReservationsPage() {
     { title: 'Subscription', dataIndex: 'hasActiveSubscription', key: 'hasActiveSubscription', render: (v) => v ? <Tag color="green">Có</Tag> : <Tag color="orange">Không</Tag> },
     { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (t) => <Tag color={statusColors[t]}>{t}</Tag> },
     {
-      title: 'Thao tác', key: 'action', width: 120,
+      title: 'Thao tác', key: 'action', width: 150,
       render: (_, record) => (
         <Space>
           <Button type="link" icon={<EyeOutlined />} onClick={() => setDetailModal(record)} />
+          {record.status === 'CONFIRMED' && (
+            <Button
+              type="link"
+              icon={<QrcodeOutlined />}
+              loading={qrLoading}
+              onClick={() => handleCreateQr(record.id)}
+              title="Tạo mã QR check-in"
+            />
+          )}
           {['PENDING', 'CONFIRMED'].includes(record.status) && (
             <Popconfirm title="Hủy đặt chỗ này?" onConfirm={() => handleCancel(record.id)}>
               <Button type="link" danger icon={<CloseCircleOutlined />} />
@@ -147,6 +197,60 @@ export default function ReservationsPage() {
             <Descriptions.Item label="Trạng thái"><Tag color={statusColors[detailModal.status]}>{detailModal.status}</Tag></Descriptions.Item>
             <Descriptions.Item label="Ghi chú">{detailModal.message || '-'}</Descriptions.Item>
           </Descriptions>
+        )}
+      </Modal>
+
+      <Modal
+        title="Mã QR Check-in"
+        open={!!qrModal}
+        onCancel={handleCloseQr}
+        footer={null}
+        width={480}
+      >
+        {qrModal && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: 13,
+              color: '#666',
+              marginBottom: 12,
+            }}>
+              Đưa mã token này cho staff quét tại cổng vào
+            </div>
+            <Input.TextArea
+              value={qrModal.token}
+              readOnly
+              autoSize={{ minRows: 3, maxRows: 5 }}
+              style={{ fontFamily: 'monospace', fontSize: 13, marginBottom: 12 }}
+            />
+            <Space style={{ marginBottom: 16 }}>
+              <Button
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  navigator.clipboard.writeText(qrModal.token);
+                  message.success('Đã copy token');
+                }}
+              >
+                Copy token
+              </Button>
+            </Space>
+            <div style={{ marginBottom: 16 }}>
+              {countdown > 0 ? (
+                <Tag color={countdown <= 30 ? 'red' : 'blue'} style={{ fontSize: 15, padding: '4px 12px' }}>
+                  Hết hạn sau: {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
+                </Tag>
+              ) : (
+                <Tag color="red" style={{ fontSize: 15, padding: '4px 12px' }}>Token đã hết hạn</Tag>
+              )}
+            </div>
+            <Button
+              type="primary"
+              icon={<ReloadOutlined />}
+              loading={qrLoading}
+              onClick={() => handleCreateQr(qrModal.reservationId)}
+            >
+              Tạo token mới
+            </Button>
+          </div>
         )}
       </Modal>
     </div>

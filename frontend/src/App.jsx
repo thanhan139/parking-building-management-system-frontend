@@ -1,13 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
-import { AuthProvider } from './contexts/AuthContext';
 import { ApartmentOutlined, ExportOutlined, ImportOutlined } from '@ant-design/icons';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import NoiBoLayout from './pages/NoiBoLayout';
 import FacilityPage from './pages/manager/FacilityPage';
+import GuestCheckInPage from './pages/GuestCheckInPage';
 import CheckOutPage from './pages/staff/CheckOutPage';
 
 const MENU_MANAGER = [
@@ -15,9 +16,17 @@ const MENU_MANAGER = [
 ];
 
 const MENU_STAFF = [
-  { key: '/staff/check-in', icon: <ImportOutlined />, label: 'Xe vào', disabled: true },
+  { key: '/staff/check-in', icon: <ImportOutlined />, label: 'Xe vào' },
   { key: '/staff/check-out', icon: <ExportOutlined />, label: 'Xe ra' },
 ];
+
+function StaffRoute({ children }) {
+  const { user, isStaff } = useAuth();
+
+  if (!user) return <Navigate to="/internal/login" replace />;
+  if (!isStaff) return <Navigate to="/" replace />;
+  return children;
+}
 
 export default function App() {
   return (
@@ -45,16 +54,27 @@ export default function App() {
               <Route path="/reservations" element={<MainPage />} />
               <Route path="/subscriptions" element={<MainPage />} />
               <Route path="/payments" element={<MainPage />} />
+
               <Route path="/login" element={<LoginPage />} />
               <Route path="/internal/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              <Route path="/manager" element={<NoiBoLayout ten="Quản lý bãi" mau="#4f46e5" navItems={MENU_MANAGER} />}>
+
+              <Route
+                path="/manager"
+                element={<StaffRoute><NoiBoLayout ten="Quản lý bãi" mau="#4f46e5" navItems={MENU_MANAGER} /></StaffRoute>}
+              >
                 <Route path="facility" element={<FacilityPage />} />
               </Route>
 
-              <Route path="/staff" element={<NoiBoLayout ten="Nhân viên cổng" mau="#2e7d4f" navItems={MENU_STAFF} />}>
+              <Route
+                path="/staff"
+                element={<StaffRoute><NoiBoLayout ten="Nhân viên cổng" mau="#2e7d4f" navItems={MENU_STAFF} /></StaffRoute>}
+              >
+                <Route path="check-in" element={<GuestCheckInPage />} />
                 <Route path="check-out" element={<CheckOutPage />} />
               </Route>
+
+              <Route path="/staff/guest-check-in" element={<Navigate to="/staff/check-in" replace />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </AntApp>

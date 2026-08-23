@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message, Divider } from 'antd';
 import { LockOutlined, PhoneOutlined, RightOutlined } from '@ant-design/icons';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, vaiTuToken } from '../contexts/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -14,13 +14,7 @@ const TAI_KHOAN_DEMO = [
 const MAT_KHAU_DEMO = 'admin';
 
 function trangTheoVai() {
-  try {
-    const token = localStorage.getItem('token');
-    const scope = JSON.parse(atob(token.split('.')[1])).scope || '';
-    return scope.includes('STAFF') ? '/staff/check-out' : '/manager/facility';
-  } catch {
-    return '/manager/facility';
-  }
+  return vaiTuToken() === 'STAFF' ? '/staff/check-in' : '/manager/facility';
 }
 
 export default function LoginPage() {
