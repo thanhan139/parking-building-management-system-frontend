@@ -1,0 +1,154 @@
+import { useState, useEffect } from 'react';
+import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, message, Popconfirm, Descriptions } from 'antd';
+import { PlusOutlined, CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import reservationService from '../services/reservationService';
+import vehicleService from '../services/vehicleService';
+import slotService from '../services/slotService';
+import dayjs from 'dayjs';
+
+const { Title } = Typography;
+
+const statusColors = {
+  PENDING: 'orange', CONFIRMED: 'green', USED: 'blue', EXPIRED: 'default', CANCELLED: 'red',
+};
+
+export default function ReservationsPage() {
+  const [reservations, setReservations] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [detailModal, setDetailModal] = useState(null);
+  const [form] = Form.useForm();
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+
+  const fetchReservations = async () => {
+    setLoading(true);
+    try {
+      const res = await reservationService.getMyReservations();
+      setReservations(res.data?.result || []);
+    } catch (err) {
+      message.error('Không thể tải danh sách đặt chỗ');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchVehicles = async () => {
+    try {
+      const res = await vehicleService.getMyVehicles();
+      setVehicles(res.data?.result || []);
+    } catch (err) {}
+  };
+
+  const handleVehicleChange = async (vehicleId) => {
+    setSelectedVehicleId(vehicleId);
+    form.setFieldValue('slotId', null);
+    try {
+      const res = await slotService.searchAvailable({});
+      const available = (res.data?.result || []).filter(s => s.available);
+      setAvailableSlots(available);
+    } catch (err) {
+      setAvailableSlots([]);
+    }
+  };
+
+  useEffect(() => { fetchReservations(); fetchVehicles(); }, []);
+
+  const handleSubmit = async (values) => {
+    try {
+      const data = {
+        slotId: values.slotId,
+        startTime: values.startTime ? values.startTime.format('YYYY-MM-DDTHH:mm:ss') : null,
+        endTime: values.endTime ? values.endTime.format('YYYY-MM-DDTHH:mm:ss') : null,
+      };
+      const res = await reservationService.createReservation(selectedVehicleId, data);
+      message.success(res.data.message || 'Đặt chỗ thành công');
+      setModalOpen(false);
+      form.resetFields();
+      fetchReservations();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Đặt chỗ thất bại');
+    }
+  };
+
+  const handleCancel = async (id) => {
+    try {
+      await reservationService.cancelReservation(id);
+      message.success('Hủy đặt chỗ thành công');
+      fetchReservations();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Không thể hủy');
+    }
+  };
+
+  const columns = [
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
+    { title: 'Biển số', dataIndex: 'plateNumber', key: 'plateNumber', render: (t) => <Tag>{t}</Tag> },
+    { title: 'Slot', dataIndex: 'slotCode', key: 'slotCode', render: (t, r) => `${t || '-'} (${r.zoneCode || ''})` },
+    { title: 'Tầng', dataIndex: 'floorCode', key: 'floorCode' },
+    { title: 'Bắt đầu', dataIndex: 'startTime', key: 'startTime', render: (t) => t ? dayjs(t).format('DD/MM/YYYY HH:mm') : '-' },
+    { title: 'Kết thúc', dataIndex: 'endTime', key: 'endTime', render: (t) => t ? dayjs(t).format('DD/MM/YYYY HH:mm') : '-' },
+    { title: 'Subscription', dataIndex: 'hasActiveSubscription', key: 'hasActiveSubscription', render: (v) => v ? <Tag color="green">Có</Tag> : <Tag color="orange">Không</Tag> },
+    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (t) => <Tag color={statusColors[t]}>{t}</Tag> },
+    {
+      title: 'Thao tác', key: 'action', width: 120,
+      render: (_, record) => (
+        <Space>
+          <Button type="link" icon={<EyeOutlined />} onClick={() => setDetailModal(record)} />
+          {['PENDING', 'CONFIRMED'].includes(record.status) && (
+            <Popconfirm title="Hủy đặt chỗ này?" onConfirm={() => handleCancel(record.id)}>
+              <Button type="link" danger icon={<CloseCircleOutlined />} />
+            </Popconfirm>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <Title level={4} style={{ margin: 0 }}>Đặt chỗ đỗ xe</Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setAvailableSlots([]); setSelectedVehicleId(null); setModalOpen(true); }}>Đặt chỗ mới</Button>
+      </div>
+      <Table columns={columns} dataSource={reservations} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+
+      <Modal title="Đặt chỗ mới" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()} okText="Đặt chỗ" cancelText="Hủy" width={600}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item name="vehicleId" label="Chọn xe" rules={[{ required: true, message: 'Chọn xe!' }]}>
+            <Select placeholder="Chọn xe" onChange={handleVehicleChange}>
+              {vehicles.map((v) => <Select.Option key={v.vehicleId} value={v.vehicleId}>{v.plateNumber} - {v.vehicleTypeName || 'N/A'}</Select.Option>)}
+            </Select>
+          </Form.Item>
+          <Form.Item name="slotId" label="Chọn slot" rules={[{ required: true, message: 'Chọn slot!' }]}>
+            <Select placeholder={selectedVehicleId ? 'Chọn slot trống' : 'Chọn xe trước'}>
+              {availableSlots.map((s) => <Select.Option key={s.slotId} value={s.slotId}>{s.slotCode} - {s.floorCode} ({s.zoneCode}) [{s.buildingName}]</Select.Option>)}
+            </Select>
+          </Form.Item>
+          <Form.Item name="startTime" label="Thời gian bắt đầu" rules={[{ required: true, message: 'Chọn thời gian!' }]}>
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="endTime" label="Thời gian kết thúc">
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal title="Chi tiết đặt chỗ" open={!!detailModal} onCancel={() => setDetailModal(null)} footer={null} width={600}>
+        {detailModal && (
+          <Descriptions bordered column={1} size="small">
+            <Descriptions.Item label="ID">{detailModal.id}</Descriptions.Item>
+            <Descriptions.Item label="Biển số">{detailModal.plateNumber}</Descriptions.Item>
+            <Descriptions.Item label="Slot">{detailModal.slotCode} - {detailModal.zoneCode} ({detailModal.floorCode})</Descriptions.Item>
+            <Descriptions.Item label="Bắt đầu">{detailModal.startTime ? dayjs(detailModal.startTime).format('DD/MM/YYYY HH:mm') : '-'}</Descriptions.Item>
+            <Descriptions.Item label="Kết thúc">{detailModal.endTime ? dayjs(detailModal.endTime).format('DD/MM/YYYY HH:mm') : '-'}</Descriptions.Item>
+            <Descriptions.Item label="Subscription">{detailModal.hasActiveSubscription ? 'Có' : 'Không'}</Descriptions.Item>
+            <Descriptions.Item label="Trạng thái"><Tag color={statusColors[detailModal.status]}>{detailModal.status}</Tag></Descriptions.Item>
+            <Descriptions.Item label="Ghi chú">{detailModal.message || '-'}</Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
+    </div>
+  );
+}
