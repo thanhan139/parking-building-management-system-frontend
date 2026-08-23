@@ -12,7 +12,7 @@ const PHOTO_SLOTS = [
   { key: 'driverFace', label: 'Mặt tài xế' },
 ];
 
-export default function ExitPhotos({ onUpload, loading }) {
+export default function ExitPhotos({ step = 2, onUpload, loading }) {
   const [photos, setPhotos] = useState({});
   const inputs = useRef({});
   const ready = PHOTO_SLOTS.every((slot) => photos[slot.key]);
@@ -22,7 +22,7 @@ export default function ExitPhotos({ onUpload, loading }) {
   };
 
   return (
-    <Card title="2 · Chụp 5 ảnh lúc ra">
+    <Card title={`${step} · Chụp 5 ảnh lúc ra`}>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         {PHOTO_SLOTS.map((slot) => {
           const taken = !!photos[slot.key];

@@ -11,7 +11,7 @@ const REASONS = [
   { value: 'OTHER', label: 'Khác' },
 ];
 
-export default function FeeSummary({ result, onAddSurcharge }) {
+export default function FeeSummary({ step = 3, result, onAddSurcharge }) {
   const [formOpen, setFormOpen] = useState(false);
   const [reason, setReason] = useState('LOST_TICKET');
   const [amount, setAmount] = useState(null);
@@ -25,7 +25,7 @@ export default function FeeSummary({ result, onAddSurcharge }) {
   };
 
   return (
-    <Card title="3 · Số tiền phải thu">
+    <Card title={`${step} · Số tiền phải thu`}>
       <Descriptions size="small" column={2} style={{ marginBottom: 12 }}>
         <Descriptions.Item label="Biển số">{result.plateNumber || '–'}</Descriptions.Item>
         <Descriptions.Item label="Loại xe">

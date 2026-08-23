@@ -8,7 +8,7 @@ const METHODS = [
   { value: 'VNPAY', label: 'VNPay' },
 ];
 
-export default function PaymentStep({ result, paid, paying, onPay, onNext }) {
+export default function PaymentStep({ step = 4, result, paid, paying, onPay, onNext }) {
   const [method, setMethod] = useState('CASH');
 
   if (paid) {
@@ -29,7 +29,7 @@ export default function PaymentStep({ result, paid, paying, onPay, onNext }) {
   }
 
   return (
-    <Card title="4 · Khách trả tiền">
+    <Card title={`${step} · Khách trả tiền`}>
       <Space wrap style={{ marginBottom: 16 }}>
         {METHODS.map((h) => (
           <Button

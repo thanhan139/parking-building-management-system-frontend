@@ -14,11 +14,14 @@ export default function CheckOutPage() {
   const [result, setResult] = useState(null);
   const [paid, setPaid] = useState(false);
   const [busy, setBusy] = useState(false);
+  // true khi vé quét ra còn thiếu ảnh, tức là có thêm một bước chụp ảnh
+  const [photoStep, setPhotoStep] = useState(false);
 
   const nextVehicle = () => {
     setTicket(null);
     setResult(null);
     setPaid(false);
+    setPhotoStep(false);
   };
 
   const findTicket = async (code) => {
@@ -26,11 +29,13 @@ export default function CheckOutPage() {
     try {
       const res = await checkOutService.preview(code);
       setTicket(code);
+      setPhotoStep(false);
       setResult(res.data.result);
     } catch (err) {
       if (errorCode(err) === 1066) {
         setTicket(code);
         setResult(null);
+        setPhotoStep(true);
         message.info('Vé hợp lệ — còn thiếu ảnh lúc ra');
       } else {
         message.error(errorText(err));
@@ -81,15 +86,20 @@ export default function CheckOutPage() {
       <h2 style={{ marginTop: 0 }}>Xe ra — thu tiền</h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <ScanTicket onFind={findTicket} finding={busy} ticketCode={ticket} onNext={nextVehicle} />
+        <ScanTicket
+          onFind={findTicket}
+          finding={busy}
+          ticketCode={ticket}
+          onNext={paid ? null : nextVehicle}
+        />
 
-        {ticket && !result && <ExitPhotos onUpload={uploadPhotos} loading={busy} />}
+        {ticket && !result && <ExitPhotos step={2} onUpload={uploadPhotos} loading={busy} />}
 
         {result && !paid && (
           <>
             <Alert type="info" showIcon message="Chưa ghi gì vào sổ. Xem lại bao nhiêu lần cũng được." />
-            <FeeSummary result={result} onAddSurcharge={addSurcharge} />
-            <PaymentStep result={result} paid={false} paying={busy} onPay={pay} />
+            <FeeSummary step={photoStep ? 3 : 2} result={result} onAddSurcharge={addSurcharge} />
+            <PaymentStep step={photoStep ? 4 : 3} result={result} paid={false} paying={busy} onPay={pay} />
           </>
         )}
 

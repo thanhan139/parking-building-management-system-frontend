@@ -10,7 +10,6 @@ const checkOutService = {
     Object.entries(photos).forEach(([field, file]) => form.append(field, file));
     return api.post('/api/check-out/photos', form, {
       params: { ticketCode, gateCode },
-      headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
 

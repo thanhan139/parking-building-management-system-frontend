@@ -17,7 +17,7 @@ export default function ScanTicket({ onFind, finding, ticketCode, onNext }) {
             <Text type="secondary" style={{ fontSize: 12 }}>MÃ VÉ</Text>
             <div style={{ fontSize: 22, fontWeight: 700 }}>{ticketCode}</div>
           </div>
-          <Button size="large" onClick={onNext}>Xe tiếp theo</Button>
+          {onNext && <Button size="large" onClick={onNext}>Xe tiếp theo</Button>}
         </Space>
       </Card>
     );
