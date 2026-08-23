@@ -23,13 +23,18 @@ export default function VehiclesPage() {
   const [driversLoading, setDriversLoading] = useState(false);
   const [addingDriver, setAddingDriver] = useState(false);
   const [driverForm] = Form.useForm();
+  const [vehicleTypes, setVehicleTypes] = useState([]);
 
-  const vehicleTypes = [
-    { code: 'MOTORBIKE', name: 'Motorbike' },
-    { code: 'ELECTRIC_BIKE', name: 'Electric Bike' },
-    { code: 'CAR', name: 'Small Car' },
-    { code: 'CAR_ELECTRIC', name: 'Electric Car' },
-  ];
+  useEffect(() => {
+    fetchVehicles();
+    const fetchTypes = async () => {
+      try {
+        const res = await vehicleService.getVehicleTypes();
+        setVehicleTypes(res.data?.result || []);
+      } catch { }
+    };
+    fetchTypes();
+  }, []);
 
   const fetchVehicles = async () => {
     setLoading(true);
@@ -42,10 +47,6 @@ export default function VehiclesPage() {
       setLoading(false);
     }
   };
-
-  const fetchVehicleTypes = async () => {};
-
-  useEffect(() => { fetchVehicles(); }, []);
 
   const handleSubmit = async (values) => {
     try {
