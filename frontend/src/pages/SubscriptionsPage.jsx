@@ -25,6 +25,7 @@ export default function SubscriptionsPage() {
   };
 
   const openPurchaseModal = () => {
+    setSelectedPlan(null);
     fetchPlans();
     setPurchaseModal(true);
   };
@@ -56,8 +57,14 @@ export default function SubscriptionsPage() {
   };
 
   const handlePurchase = async () => {
-    if (!selectedPlan || !selectedVehicle) {
+    const vehicle = vehicles.find((v) => v.vehicleId === selectedVehicle);
+    if (!selectedPlan || !vehicle) {
       message.warning('Chọn xe và gói trước!');
+      return;
+    }
+    const plan = plans.find((p) => p.id === selectedPlan);
+    if (plan && vehicle.vehicleTypeCode && plan.vehicleTypeCode !== vehicle.vehicleTypeCode) {
+      message.warning(`Gói này chỉ dành cho xe ${plan.vehicleTypeName || plan.vehicleTypeCode}, không áp dụng cho xe của bạn!`);
       return;
     }
     try {
@@ -106,10 +113,36 @@ export default function SubscriptionsPage() {
       )}
 
       <Modal title="Mua gói đăng ký" open={purchaseModal} onCancel={() => setPurchaseModal(false)} onOk={handlePurchase} okText="Thanh toán VNPay" cancelText="Hủy">
-        <p>Chọn gói đăng ký cho xe:</p>
-        <Select placeholder="Chọn gói" style={{ width: '100%' }} onChange={(v) => setSelectedPlan(v)}>
-          {plans.map((p) => <Select.Option key={p.id} value={p.id}>{p.name} - {p.durationMonths} tháng - {Number(p.price).toLocaleString()} VND</Select.Option>)}
-        </Select>
+        {(() => {
+          const vehicle = vehicles.find((v) => v.vehicleId === selectedVehicle);
+          return (
+            <>
+              <p>
+                Chọn gói đăng ký cho xe{' '}
+                <strong>{vehicle?.plateNumber}</strong>
+                {vehicle?.vehicleTypeName ? (
+                  <Tag color="blue" style={{ marginLeft: 8 }}>{vehicle.vehicleTypeName}</Tag>
+                ) : null}
+              </p>
+              <Select
+                placeholder="Chọn gói"
+                style={{ width: '100%' }}
+                value={selectedPlan}
+                onChange={(v) => setSelectedPlan(v)}
+              >
+                {plans.map((p) => {
+                  const mismatch = vehicle?.vehicleTypeCode && p.vehicleTypeCode !== vehicle.vehicleTypeCode;
+                  return (
+                    <Select.Option key={p.id} value={p.id} disabled={mismatch || p.isActive === false}>
+                      {p.name} - {p.durationMonths} tháng - {Number(p.price).toLocaleString()} VND
+                      {mismatch ? ` (chỉ dành cho xe ${p.vehicleTypeName || p.vehicleTypeCode})` : ''}
+                    </Select.Option>
+                  );
+                })}
+              </Select>
+            </>
+          );
+        })()}
       </Modal>
     </div>
   );
