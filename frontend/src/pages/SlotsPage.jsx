@@ -106,6 +106,16 @@ export default function SlotsPage() {
     }
   };
 
+  const clearSearch = () => {
+    const f = { buildingId: null, floorId: null, vehicleTypeId: null, startTime: null, endTime: null };
+    setFilters(f);
+    setSelectedVehicleId(null);
+    setFloors([]);
+    setSlots([]);
+    setSearched(false);
+    setReservedByMeIds(new Set());
+  };
+
   const handleVehicleSelect = (vehicleId) => {
     const vehicle = myVehicles.find((v) => v.vehicleId === vehicleId);
     const vt = codeToType(vehicle?.vehicleTypeCode);
@@ -162,7 +172,7 @@ export default function SlotsPage() {
             value={selectedVehicleId}
             onChange={handleVehicleSelect}
             allowClear
-            onClear={() => setSelectedVehicleId(null)}
+            onClear={clearSearch}
           >
             {myVehicles.map((v) => (
               <Select.Option key={v.vehicleId} value={v.vehicleId}>
@@ -240,7 +250,7 @@ export default function SlotsPage() {
                 : 'Chọn loại xe để tìm chỗ đỗ'
             }
           />
-        ) : (
+          ) : (
           <>
             <div style={{ marginBottom: 16 }}>
               <Tag color="blue" icon={<CarOutlined />}>

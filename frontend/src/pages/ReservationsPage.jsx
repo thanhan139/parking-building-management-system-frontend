@@ -83,6 +83,23 @@ export default function ReservationsPage() {
     }
   };
 
+  const validateReservationDraft = (values) => {
+    if (!values.vehicleId) return { field: 'vehicleId', message: 'Chọn xe!' };
+    if (!values.slotId) return { field: 'slotId', message: 'Chọn slot!' };
+    if (!values.startTime) return { field: 'startTime', message: 'Chọn thời gian bắt đầu!' };
+    if (!values.endTime) return { field: 'endTime', message: 'Chọn thời gian kết thúc!' };
+    if (values.startTime.isBefore(dayjs())) {
+      return { field: 'startTime', message: 'Không được chọn thời gian trong quá khứ!' };
+    }
+    if (values.endTime.isBefore(dayjs())) {
+      return { field: 'endTime', message: 'Không được chọn thời gian trong quá khứ!' };
+    }
+    if (!values.endTime.isAfter(values.startTime)) {
+      return { field: 'endTime', message: 'Thời gian kết thúc phải sau thời gian bắt đầu!' };
+    }
+    return null;
+  };
+
   const handleVehicleChange = async (vehicleId) => {
     setSelectedVehicleId(vehicleId);
     form.setFieldValue('slotId', null);
@@ -142,6 +159,12 @@ export default function ReservationsPage() {
 
   const handleSubmit = async (values) => {
     if (submitting) return;
+    const validation = validateReservationDraft(values);
+    if (validation) {
+      form.setFields([{ name: validation.field, errors: [validation.message] }]);
+      message.error(validation.message);
+      return;
+    }
     setSubmitting(true);
     try {
       const vtId = resolveTypeId(selectedVehicleId);
@@ -236,11 +259,33 @@ export default function ReservationsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>Đặt chỗ đỗ xe</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setSelectedVehicleId(null); setModalOpen(true); loadSlots(); }}>Đặt chỗ mới</Button>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            form.resetFields();
+            setSelectedVehicleId(null);
+            setAvailableSlots([]);
+            setModalOpen(true);
+            loadSlots();
+          }}
+        >
+          Đặt chỗ mới
+        </Button>
       </div>
       <Table columns={columns} dataSource={reservations} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
 
-      <Modal title="Đặt chỗ mới" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()} okText="Đặt chỗ" cancelText="Hủy" width={600} confirmLoading={submitting} okButtonProps={{ disabled: submitting }}>
+      <Modal
+        title="Đặt chỗ mới"
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        onOk={() => form.submit()}
+        okText="Đặt chỗ"
+        cancelText="Hủy"
+        width={600}
+        confirmLoading={submitting}
+        okButtonProps={{ disabled: submitting }}
+      >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item name="vehicleId" label="Chọn xe" rules={[{ required: true, message: 'Chọn xe!' }]}>
             <Select placeholder="Chọn xe" onChange={handleVehicleChange}>
