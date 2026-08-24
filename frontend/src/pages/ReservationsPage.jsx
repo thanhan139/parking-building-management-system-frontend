@@ -34,17 +34,11 @@ export default function ReservationsPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [activeSubscription, setActiveSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [qrModal, setQrModal] = useState(null); // { reservationId, token, expiresAt }
   const [qrLoading, setQrLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const countdownRef = useRef(null);
-
-  const resolveTypeId = (vehicleId) => {
-    const vehicle = vehicles.find((v) => v.vehicleId === vehicleId);
-    return vehicleTypes.find((vt) => vt.code === vehicle?.vehicleTypeCode)?.id;
-  };
 
   const fetchReservations = async () => {
     setLoading(true);
@@ -111,6 +105,7 @@ export default function ReservationsPage() {
   };
 
   const handleVehicleChange = async (vehicleId) => {
+    const vehicle = vehicles.find((item) => String(item.vehicleId) === String(vehicleId));
     setSelectedVehicleId(vehicleId);
     form.setFieldsValue({ slotId: undefined });
     setAvailableSlots([]);
@@ -161,7 +156,7 @@ export default function ReservationsPage() {
     }
   };
 
-  useEffect(() => { fetchReservations(); fetchVehicles(); fetchVehicleTypes(); }, []);
+  useEffect(() => { fetchReservations(); fetchVehicles(); }, []);
 
   const startCountdown = (expiresAt) => {
     clearInterval(countdownRef.current);
