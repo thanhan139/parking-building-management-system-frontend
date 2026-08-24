@@ -5,7 +5,7 @@ import {
   HistoryOutlined, LogoutOutlined, UserOutlined, DashboardOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth, homeForRole } from '../contexts/AuthContext';
 import { resolveImageUrl } from '../utils/imageUrl';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
@@ -29,10 +29,15 @@ const navItems = [
 ];
 
 export default function MainPage() {
-  const { user, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
+
+  // Khu member chi danh cho DRIVER; tai khoan noi bo dua ve trang cua role.
+  useEffect(() => {
+    if (role && role !== 'DRIVER') navigate(homeForRole(role), { replace: true });
+  }, [role, navigate]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);

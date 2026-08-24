@@ -14,6 +14,16 @@ export function roleFromToken() {
   }
 }
 
+// Trang mac dinh sau khi dang nhap theo vai tro.
+export function homeForRole(role) {
+  switch (role) {
+    case 'ADMIN': return '/admin/plans';
+    case 'MANAGER': return '/manager/facility';
+    case 'STAFF': return '/staff/check-in';
+    default: return '/';
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
@@ -53,6 +63,7 @@ export function AuthProvider({ children }) {
   };
 
   const isStaff = ['STAFF', 'MANAGER', 'ADMIN'].includes(role);
+  const isInternal = role && role !== 'DRIVER';
   const isAdmin = role === 'ADMIN';
 
   const register = async (data) => {
@@ -83,7 +94,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, role, isStaff, isAdmin, login, register, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, role, isStaff, isAdmin, isInternal, login, register, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
