@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage';
 import InternalLayout from './pages/InternalLayout';
 import FacilityPage from './pages/manager/FacilityPage';
 import GuestCheckInPage from './pages/GuestCheckInPage';
+import MemberCheckInPage from './pages/MemberCheckInPage';
 import CheckOutPage from './pages/staff/CheckOutPage';
 import PricingPage from './pages/admin/PricingPage';
 import PaymentPage from './pages/admin/PaymentPage';
@@ -26,7 +27,8 @@ const MENU_MANAGER = [
 ];
 
 const MENU_STAFF = [
-  { key: '/staff/check-in', icon: <ImportOutlined />, label: 'Xe vào' },
+  { key: '/staff/check-in', icon: <ImportOutlined />, label: 'Check-in khách' },
+  { key: '/staff/member-check-in', icon: <ImportOutlined />, label: 'Check-in thành viên' },
   { key: '/staff/check-out', icon: <ExportOutlined />, label: 'Xe ra' },
 ];
 
@@ -98,10 +100,12 @@ export default function App() {
                 element={<StaffRoute><InternalLayout title="Nhân viên cổng" color="#2e7d4f" navItems={MENU_STAFF} /></StaffRoute>}
               >
                 <Route path="check-in" element={<GuestCheckInPage />} />
+                <Route path="member-check-in" element={<MemberCheckInPage />} />
                 <Route path="check-out" element={<CheckOutPage />} />
               </Route>
 
               <Route path="/staff/guest-check-in" element={<Navigate to="/staff/check-in" replace />} />
+              <Route path="/staff/membership-check-in" element={<Navigate to="/staff/member-check-in" replace />} />
               <Route path="/payment-result" element={<PaymentResultPage />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
