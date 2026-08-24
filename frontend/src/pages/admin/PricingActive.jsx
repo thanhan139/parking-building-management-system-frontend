@@ -1,6 +1,6 @@
-import { Alert, Card, Empty, Tag } from 'antd';
+import { Card, Empty, Tag } from 'antd';
 import {
-  CATEGORY, CUSTOMER, COMBOS, ruleState,
+  CUSTOMER, TYPE_LABELS, ruleState,
   firstBlockText, nextBlockText, surchargeText, dayText,
 } from './pricingLabels';
 
@@ -13,55 +13,33 @@ function Line({ label, value }) {
   );
 }
 
-function ComboCard({ combo, rule }) {
-  const title = `${CATEGORY[combo.vehicleCategory]} · ${CUSTOMER[combo.customerType]}`;
+export default function PricingActive({ rules }) {
+  const running = rules.filter((rule) => ruleState(rule).key === 'RUNNING');
 
-  if (!rule) {
+  if (!running.length) {
     return (
-      <Card size="small" title={title} styles={{ body: { padding: 12 } }}>
-        <Alert
-          type="error"
-          showIcon
-          message="Chưa có biểu giá"
-          description="Xe loại này ra cổng sẽ không tính được tiền."
-        />
-      </Card>
+      <Empty description="Chưa có biểu giá nào đang chạy" />
     );
   }
 
   return (
-    <Card
-      size="small"
-      title={title}
-      extra={<Tag color="green">Đang chạy</Tag>}
-      styles={{ body: { padding: 12 } }}
-    >
-      <Line label="Khối đầu" value={firstBlockText(rule)} />
-      <Line label="Khối tiếp" value={nextBlockText(rule)} />
-      <Line label="Phụ phí" value={surchargeText(rule)} />
-      <Line label="Áp dụng từ" value={dayText(rule.effectiveFrom)} />
-    </Card>
-  );
-}
-
-export default function PricingActive({ rules }) {
-  const running = rules.filter((rule) => ruleState(rule).key === 'RUNNING');
-
-  const findRule = (combo) => running.find(
-    (rule) => rule.vehicleCategory === combo.vehicleCategory && rule.customerType === combo.customerType,
-  );
-
-  if (!rules.length) return <Empty description="Chưa có biểu giá nào" />;
-
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
-      {COMBOS.map((combo) => (
-        <ComboCard
-          key={`${combo.vehicleCategory}-${combo.customerType}`}
-          combo={combo}
-          rule={findRule(combo)}
-        />
-      ))}
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+        {running.map((rule) => (
+          <Card
+            key={rule.id}
+            size="small"
+            title={`${TYPE_LABELS[rule.vehicleTypeCode] || rule.vehicleTypeCode || 'Không rõ loại'} · ${CUSTOMER[rule.customerType] || '—'}`}
+            extra={<Tag color="green">Đang chạy</Tag>}
+            styles={{ body: { padding: 12 } }}
+          >
+            <Line label="Khối đầu" value={firstBlockText(rule)} />
+            <Line label="Khối tiếp" value={nextBlockText(rule)} />
+            <Line label="Phụ phí" value={surchargeText(rule)} />
+            <Line label="Áp dụng từ" value={dayText(rule.effectiveFrom)} />
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
