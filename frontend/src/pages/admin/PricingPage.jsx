@@ -12,24 +12,14 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
-  // Backend trả 404 khi CHƯA có biểu giá cho loại xe -> coi như danh sách rỗng
-  const getCategoryRules = async (category) => {
-    try {
-      return (await pricingService.getByCategory(category)).data.result || [];
-    } catch (err) {
-      if (err.response?.status === 404) return [];
-      throw err;
-    }
-  };
-
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
       const [car, motorcycle] = await Promise.all([
-        getCategoryRules('CAR'),
-        getCategoryRules('MOTORCYCLE'),
+        pricingService.getByCategory('CAR'),
+        pricingService.getByCategory('MOTORCYCLE'),
       ]);
-      setRules([...car, ...motorcycle]);
+      setRules([...(car.data.result || []), ...(motorcycle.data.result || [])]);
     } catch (err) {
       message.error(errorText(err));
     } finally {
