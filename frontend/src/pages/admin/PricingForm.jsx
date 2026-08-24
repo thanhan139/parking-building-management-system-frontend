@@ -1,8 +1,6 @@
 import { Alert, DatePicker, Divider, Form, InputNumber, Modal, Select, TimePicker } from 'antd';
-import { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import vehicleService from '../../services/vehicleService';
-import { CUSTOMER, TYPE_LABELS } from './pricingLabels';
+import { CATEGORY, CUSTOMER } from './pricingLabels';
 
 const TIME_FIELDS = [
   { name: 'firstBlockHours', label: 'Số giờ khối đầu', required: true, min: 1 },
@@ -19,6 +17,8 @@ const MANUAL_FIELDS = [
 ];
 
 const GRID = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0 16px' };
+
+const options = (map) => Object.entries(map).map(([value, label]) => ({ value, label }));
 
 function NumberFields({ fields }) {
   return (
@@ -40,15 +40,6 @@ function NumberFields({ fields }) {
 
 export default function PricingForm({ open, onCancel, onSubmit }) {
   const [form] = Form.useForm();
-  const [vehicleTypes, setVehicleTypes] = useState([]);
-
-  useEffect(() => {
-    if (!open) return;
-    vehicleService
-      .getVehicleTypes()
-      .then((res) => setVehicleTypes(res.data?.result || []))
-      .catch(() => setVehicleTypes([]));
-  }, [open]);
 
   const submit = async () => {
     let values;
@@ -95,6 +86,7 @@ export default function PricingForm({ open, onCancel, onSubmit }) {
         form={form}
         layout="vertical"
         initialValues={{
+          vehicleCategory: 'CAR',
           customerType: 'GUEST',
           firstBlockHours: 2,
           overnightHour: dayjs('07:00:00', 'HH:mm:ss'),
@@ -102,17 +94,11 @@ export default function PricingForm({ open, onCancel, onSubmit }) {
         }}
       >
         <div style={GRID}>
-          <Form.Item name="vehicleTypeId" label="Loại xe" rules={[{ required: true, message: 'Chọn loại xe!' }]}>
-            <Select
-              placeholder="Chọn loại xe"
-              options={vehicleTypes.map((vt) => ({
-                value: vt.id,
-                label: TYPE_LABELS[vt.code] || vt.name || vt.code,
-              }))}
-            />
+          <Form.Item name="vehicleCategory" label="Loại xe" rules={[{ required: true }]}>
+            <Select options={options(CATEGORY)} />
           </Form.Item>
           <Form.Item name="customerType" label="Loại khách" rules={[{ required: true }]}>
-            <Select options={Object.entries(CUSTOMER).map(([value, label]) => ({ value, label }))} />
+            <Select options={options(CUSTOMER)} />
           </Form.Item>
         </div>
 

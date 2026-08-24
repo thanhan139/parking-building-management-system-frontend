@@ -4,7 +4,6 @@ import { PlusOutlined, CloseCircleOutlined, EyeOutlined, QrcodeOutlined, ReloadO
 import reservationService from '../services/reservationService';
 import vehicleService from '../services/vehicleService';
 import slotService from '../services/slotService';
-import { disabledPastDate, pastTimeDisabled } from '../utils/timeUtils';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -23,17 +22,10 @@ export default function ReservationsPage() {
   const [detailModal, setDetailModal] = useState(null);
   const [form] = Form.useForm();
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
-  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [qrModal, setQrModal] = useState(null); // { reservationId, token, expiresAt }
   const [qrLoading, setQrLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
   const countdownRef = useRef(null);
-
-  const resolveTypeId = (vehicleId) => {
-    const vehicle = vehicles.find((v) => v.vehicleId === vehicleId);
-    return vehicleTypes.find((vt) => vt.code === vehicle?.vehicleTypeCode)?.id;
-  };
 
   const fetchReservations = async () => {
     setLoading(true);
@@ -54,53 +46,19 @@ export default function ReservationsPage() {
     } catch (err) {}
   };
 
-  const fetchVehicleTypes = async () => {
-    try {
-      const res = await vehicleService.getVehicleTypes();
-      setVehicleTypes(res.data?.result || []);
-    } catch (err) {}
-  };
-
-  const loadSlots = async (startTime = null, endTime = null, vehicleId = selectedVehicleId) => {
-    try {
-      const params = {};
-      // Da chon xe ma khong suy ra duoc loai xe -> danh sach trong thay vi hien tat ca.
-      const vtId = resolveTypeId(vehicleId);
-      if (vehicleId && !vtId) {
-        setAvailableSlots([]);
-        return;
-      }
-      if (vtId) params.vehicleTypeId = vtId;
-      if (startTime) params.startTime = startTime.format('YYYY-MM-DDTHH:mm:ss');
-      if (endTime) params.endTime = endTime.format('YYYY-MM-DDTHH:mm:ss');
-      const res = await slotService.searchAvailable(params);
-      const list = (res.data?.result || []).filter((s) => s.available);
-      setAvailableSlots(list);
-      return list;
-    } catch (err) {
-      setAvailableSlots([]);
-      return [];
-    }
-  };
-
   const handleVehicleChange = async (vehicleId) => {
     setSelectedVehicleId(vehicleId);
     form.setFieldValue('slotId', null);
-    await loadSlots(form.getFieldValue('startTime'), form.getFieldValue('endTime'), vehicleId);
-  };
-
-  const handleTimeChange = async () => {
-    const st = form.getFieldValue('startTime');
-    const et = form.getFieldValue('endTime');
-    const currentSlot = form.getFieldValue('slotId');
-    const list = await loadSlots(st, et);
-    if (currentSlot && !list.some((s) => s.slotId === currentSlot)) {
-      form.setFieldValue('slotId', null);
-      message.info('Slot đang chọn không còn trống với khung giờ mới, vui lòng chọn lại.');
+    try {
+      const res = await slotService.searchAvailable({});
+      const available = (res.data?.result || []).filter(s => s.available);
+      setAvailableSlots(available);
+    } catch (err) {
+      setAvailableSlots([]);
     }
   };
 
-  useEffect(() => { fetchReservations(); fetchVehicles(); fetchVehicleTypes(); }, []);
+  useEffect(() => { fetchReservations(); fetchVehicles(); }, []);
 
   const startCountdown = (expiresAt) => {
     clearInterval(countdownRef.current);
@@ -141,24 +99,7 @@ export default function ReservationsPage() {
   };
 
   const handleSubmit = async (values) => {
-    if (submitting) return;
-    setSubmitting(true);
     try {
-      const vtId = resolveTypeId(selectedVehicleId);
-      const checkParams = {};
-      if (vtId) checkParams.vehicleTypeId = vtId;
-      if (values.startTime) checkParams.startTime = values.startTime.format('YYYY-MM-DDTHH:mm:ss');
-      if (values.endTime) checkParams.endTime = values.endTime.format('YYYY-MM-DDTHH:mm:ss');
-      const checkRes = await slotService.searchAvailable(checkParams);
-      const stillFree = (checkRes.data?.result || []).some(
-        (s) => s.slotId === values.slotId && s.available
-      );
-      if (!stillFree) {
-        message.error('Slot này vừa có người đặt hoặc không còn trống. Danh sách đã được cập nhật, vui lòng chọn slot khác!');
-        form.setFieldValue('slotId', null);
-        await loadSlots(values.startTime, values.endTime);
-        return;
-      }
       const data = {
         slotId: values.slotId,
         startTime: values.startTime ? values.startTime.format('YYYY-MM-DDTHH:mm:ss') : null,
@@ -170,22 +111,7 @@ export default function ReservationsPage() {
       form.resetFields();
       fetchReservations();
     } catch (err) {
-      const code = err.response?.data?.code;
-      const msgs = {
-        1032: 'Đặt chỗ không tồn tại hoặc đã bị xử lý.',
-        1033: 'Xe này đang có một đặt chỗ chưa hoàn tất (chưa check-in/hủy). Vui lòng hoàn tất hoặc hủy nó trước!',
-        1034: 'Không còn slot phù hợp cho xe của bạn trong khung giờ này.',
-        1043: 'Slot này vừa có người đặt hoặc không phù hợp với xe của bạn. Danh sách slot đã được cập nhật, vui lòng chọn slot khác!',
-      };
-      if ([1032, 1033, 1034, 1043].includes(code)) {
-        message.error(msgs[code]);
-        form.setFieldValue('slotId', null);
-        await loadSlots(values.startTime, values.endTime);
-      } else {
-        message.error(err.response?.data?.message || 'Đặt chỗ thất bại');
-      }
-    } finally {
-      setSubmitting(false);
+      message.error(err.response?.data?.message || 'Đặt chỗ thất bại');
     }
   };
 
@@ -236,11 +162,11 @@ export default function ReservationsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>Đặt chỗ đỗ xe</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setSelectedVehicleId(null); setModalOpen(true); loadSlots(); }}>Đặt chỗ mới</Button>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setAvailableSlots([]); setSelectedVehicleId(null); setModalOpen(true); }}>Đặt chỗ mới</Button>
       </div>
       <Table columns={columns} dataSource={reservations} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
 
-      <Modal title="Đặt chỗ mới" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()} okText="Đặt chỗ" cancelText="Hủy" width={600} confirmLoading={submitting} okButtonProps={{ disabled: submitting }}>
+      <Modal title="Đặt chỗ mới" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()} okText="Đặt chỗ" cancelText="Hủy" width={600}>
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item name="vehicleId" label="Chọn xe" rules={[{ required: true, message: 'Chọn xe!' }]}>
             <Select placeholder="Chọn xe" onChange={handleVehicleChange}>
@@ -248,48 +174,15 @@ export default function ReservationsPage() {
             </Select>
           </Form.Item>
           <Form.Item name="slotId" label="Chọn slot" rules={[{ required: true, message: 'Chọn slot!' }]}>
-            <Select
-              placeholder={selectedVehicleId ? 'Chọn slot trống' : 'Chọn xe trước'}
-              disabled={!selectedVehicleId}
-              notFoundContent="Không có slot trống phù hợp với xe của bạn"
-              onDropdownVisibleChange={(open) => {
-                if (open) loadSlots(form.getFieldValue('startTime'), form.getFieldValue('endTime'));
-              }}
-            >
+            <Select placeholder={selectedVehicleId ? 'Chọn slot trống' : 'Chọn xe trước'}>
               {availableSlots.map((s) => <Select.Option key={s.slotId} value={s.slotId}>{s.slotCode} - {s.floorCode} ({s.zoneCode}) [{s.buildingName}]</Select.Option>)}
             </Select>
           </Form.Item>
-          <Form.Item name="startTime" label="Thời gian bắt đầu" rules={[
-            { required: true, message: 'Chọn thời gian!' },
-            () => ({
-              validator(_, value) {
-                if (!value || !value.isBefore(dayjs())) return Promise.resolve();
-                return Promise.reject(new Error('Không được chọn thời gian trong quá khứ!'));
-              },
-            }),
-          ]}>
-            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} disabledDate={disabledPastDate} disabledTime={pastTimeDisabled} onChange={handleTimeChange} />
+          <Form.Item name="startTime" label="Thời gian bắt đầu" rules={[{ required: true, message: 'Chọn thời gian!' }]}>
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="endTime" label="Thời gian kết thúc" rules={[
-            { required: true, message: 'Chọn thời gian!' },
-            ({ getFieldValue }) => ({
-              validator(_, value) {
-                if (!value) return Promise.resolve();
-                const st = getFieldValue('startTime');
-                if (value.isBefore(dayjs())) return Promise.reject(new Error('Không được chọn thời gian trong quá khứ!'));
-                if (st && !value.isAfter(st)) return Promise.reject(new Error('Phải sau thời gian bắt đầu!'));
-                return Promise.resolve();
-              },
-            }),
-          ]}>
-            <DatePicker
-              showTime
-              format="YYYY-MM-DD HH:mm"
-              style={{ width: '100%' }}
-              disabledDate={(d) => d && d.isBefore((form.getFieldValue('startTime') || dayjs()).startOf('day'))}
-              disabledTime={pastTimeDisabled}
-              onChange={handleTimeChange}
-            />
+          <Form.Item name="endTime" label="Thời gian kết thúc">
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

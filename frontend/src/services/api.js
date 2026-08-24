@@ -24,14 +24,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    // 401 tu /auth/login la sai mat khau, khong phai het han token.
-    const isLoginRequest = err.config?.url?.includes('/auth/login');
-    if (err.response?.status === 401 && !isLoginRequest) {
+    if (err.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
-      }
+      window.location.href = '/login';
     }
     return Promise.reject(err);
   }

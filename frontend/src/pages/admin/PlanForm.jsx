@@ -18,13 +18,10 @@ export default function PlanForm({ open, editing, onCancel, onSubmit }) {
     if (!open) return;
     if (editing) {
       form.setFieldsValue({
-        code: editing.code,
         name: editing.name,
         vehicleTypeCode: editing.vehicleTypeCode,
         durationMonths: editing.durationMonths,
         price: Number(editing.price),
-        maxSold: editing.maxSold ?? undefined,
-        description: editing.description,
         isActive: editing.isActive !== false,
       });
     } else {
@@ -59,15 +56,9 @@ export default function PlanForm({ open, editing, onCancel, onSubmit }) {
       confirmLoading={saving}
     >
       <Form form={form} layout="vertical">
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0 16px' }}>
-          <Form.Item name="name" label="Tên gói" rules={[{ required: true, whitespace: true, message: 'Nhập tên gói' }]}>
-            <Input placeholder="Ví dụ: Gói xe máy 3 tháng" maxLength={100} />
-          </Form.Item>
-
-          <Form.Item name="code" label="Mã gói" rules={[{ required: true, whitespace: true, message: 'Nhập mã gói' }]}>
-            <Input placeholder="VD: BIKE_3M" maxLength={50} />
-          </Form.Item>
-        </div>
+        <Form.Item name="name" label="Tên gói" rules={[{ required: true, whitespace: true, message: 'Nhập tên gói' }]}>
+          <Input placeholder="Ví dụ: Gói xe máy 3 tháng" maxLength={100} />
+        </Form.Item>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
           <Form.Item name="vehicleTypeCode" label="Loại xe" rules={[{ required: true, message: 'Chọn loại xe' }]}>
@@ -86,10 +77,6 @@ export default function PlanForm({ open, editing, onCancel, onSubmit }) {
             <Switch checkedChildren="Đang bán" unCheckedChildren="Ẩn" />
           </Form.Item>
         </div>
-
-        <Form.Item name="description" label="Mô tả">
-          <Input.TextArea placeholder="Mô tả ngắn về gói (không bắt buộc)" rows={2} maxLength={500} />
-        </Form.Item>
       </Form>
     </Modal>
   );

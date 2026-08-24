@@ -4,31 +4,13 @@ import userService from '../services/userService';
 
 const AuthContext = createContext(null);
 
-// Backend gui vai tro trong truong "scope" cua JWT, khong gui kem trong user.
-function decodeJwtPayload(token) {
-  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  return JSON.parse(atob(base64));
-}
-
+// Backend gui vai trong truong "scope" cua JWT, khong gui kem trong user.
 export function roleFromToken() {
   try {
-    const payload = decodeJwtPayload(localStorage.getItem('token'));
-    if (!payload.exp || payload.exp * 1000 <= Date.now()) return null;
-    return payload.scope || null;
+    const token = localStorage.getItem('token');
+    return JSON.parse(atob(token.split('.')[1])).scope || null;
   } catch {
     return null;
-  }
-}
-
-// Token het han hoac khong doc duoc -> coi nhu chua dang nhap.
-export function isTokenExpired() {
-  const token = localStorage.getItem('token');
-  if (!token) return true;
-  try {
-    const payload = decodeJwtPayload(token);
-    return !payload.exp || payload.exp * 1000 <= Date.now();
-  } catch {
-    return true;
   }
 }
 
@@ -110,32 +92,6 @@ export function AuthProvider({ children }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Tu dong xoa token + logout dung luc JWT het han (backend cap 1 gio).
-  useEffect(() => {
-    if (!user?.userId) return undefined;
-    if (isTokenExpired()) {
-      logout();
-      window.location.href = '/login';
-      return undefined;
-    }
-    let timer;
-    const schedule = () => {
-      try {
-        const payload = decodeJwtPayload(localStorage.getItem('token'));
-        timer = setTimeout(() => {
-          logout();
-          window.location.href = '/login';
-        }, Math.max(payload.exp * 1000 - Date.now(), 0));
-      } catch {
-        logout();
-        window.location.href = '/login';
-      }
-    };
-    schedule();
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.userId]);
 
   return (
     <AuthContext.Provider value={{ user, role, isStaff, isAdmin, isInternal, login, register, logout, updateUser, loading }}>

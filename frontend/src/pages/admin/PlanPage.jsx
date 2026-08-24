@@ -21,7 +21,7 @@ export default function PlanPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      setPlans((await subscriptionService.getAllPlans()).data.result || []);
+      setPlans((await subscriptionService.getPlans()).data.result || []);
     } catch (err) {
       message.error(err.response?.data?.message || 'Không thể tải danh sách gói');
     } finally {
@@ -77,7 +77,6 @@ export default function PlanPage() {
 
   const columns = [
     { title: 'Tên gói', dataIndex: 'name', key: 'name', render: (t) => <Text strong>{t}</Text> },
-    { title: 'Mã gói', dataIndex: 'code', key: 'code', width: 130, render: (t) => <Tag>{t}</Tag> },
     {
       title: 'Loại xe',
       dataIndex: 'vehicleTypeName',
