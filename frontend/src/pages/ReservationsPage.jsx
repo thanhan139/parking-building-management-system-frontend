@@ -34,11 +34,29 @@ export default function ReservationsPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [activeSubscription, setActiveSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
   const [qrModal, setQrModal] = useState(null); // { reservationId, token, expiresAt }
   const [qrLoading, setQrLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const countdownRef = useRef(null);
+
+  const getSubscriptionPlan = (subscription, plans = subscriptionPlans) => plans.find((plan) =>
+    (subscription?.planId != null && String(plan.id) === String(subscription.planId))
+    || (subscription?.planCode && (plan.code === subscription.planCode || plan.planCode === subscription.planCode))
+  );
+
+  const subscriptionMatchesVehicle = (vehicle, subscription, plans = subscriptionPlans) => {
+    const plan = getSubscriptionPlan(subscription, plans);
+    const vehicleTypes = [vehicle?.vehicleTypeId, vehicle?.vehicleTypeCode].filter(Boolean);
+    const subscriptionTypes = [
+      subscription?.vehicleTypeId,
+      subscription?.vehicleTypeCode,
+      plan?.vehicleTypeId,
+      plan?.vehicleTypeCode,
+    ].filter(Boolean);
+    return vehicleTypes.some((vehicleType) => subscriptionTypes.some((subscriptionType) => String(subscriptionType) === String(vehicleType)));
+  };
 
   const fetchReservations = async () => {
     setLoading(true);
@@ -72,10 +90,7 @@ export default function ReservationsPage() {
       return { field: 'vehicleId', message: 'Xe này chưa có subscription ACTIVE phù hợp. Vui lòng đăng ký hoặc gia hạn gói trước.' };
     }
 
-    const vehicleTypeMatches = [vehicle.vehicleTypeId, vehicle.vehicleTypeCode].filter(Boolean)
-      .some((value) => [activeSubscription.vehicleTypeId, activeSubscription.vehicleTypeCode, activeSubscription.plan?.vehicleTypeId, activeSubscription.plan?.vehicleTypeCode].filter(Boolean)
-        .some((subscriptionType) => String(subscriptionType) === String(value)));
-    if (!vehicleTypeMatches) {
+    if (!subscriptionMatchesVehicle(vehicle, activeSubscription)) {
       return { field: 'vehicleId', message: 'Loại xe không phù hợp với subscription ACTIVE đang áp dụng.' };
     }
 
@@ -123,26 +138,30 @@ export default function ReservationsPage() {
 
     setSubscriptionLoading(true);
     try {
-      const subscriptionResponse = await subscriptionService.getActiveSubscription(vehicleId);
+      const [subscriptionResponse, plansResponse] = await Promise.all([
+        subscriptionService.getActiveSubscription(vehicleId),
+        subscriptionService.getPlans(),
+      ]);
       const subscription = subscriptionResponse.data?.result || subscriptionResponse.data;
+      const plans = plansResponse.data?.result || plansResponse.data || [];
+      setSubscriptionPlans(plans);
       const subscriptionStatus = String(subscription?.status || '').toUpperCase();
-      const vehicleTypeMatches = [vehicle?.vehicleTypeId, vehicle?.vehicleTypeCode].filter(Boolean)
-        .some((value) => [subscription?.vehicleTypeId, subscription?.vehicleTypeCode, subscription?.plan?.vehicleTypeId, subscription?.plan?.vehicleTypeCode].filter(Boolean)
-          .some((subscriptionType) => String(subscriptionType) === String(value)));
 
       if (!subscription || subscriptionStatus !== 'ACTIVE') {
         form.setFields([{ name: 'vehicleId', errors: ['Xe này chưa có subscription ACTIVE.'] }]);
         message.warning('Xe này chưa có subscription ACTIVE.');
         return;
       }
-      if (!vehicleTypeMatches) {
+      if (!subscriptionMatchesVehicle(vehicle, subscription, plans)) {
         form.setFields([{ name: 'vehicleId', errors: ['Subscription không phù hợp với loại xe đã chọn.'] }]);
         message.warning('Subscription không phù hợp với loại xe đã chọn.');
         return;
       }
 
-      setActiveSubscription(subscription);
-      const subscriptionVehicleTypeId = subscription.vehicleTypeId || subscription.plan?.vehicleTypeId;
+      const plan = getSubscriptionPlan(subscription, plans);
+      const enrichedSubscription = { ...subscription, plan };
+      setActiveSubscription(enrichedSubscription);
+      const subscriptionVehicleTypeId = subscription.vehicleTypeId || subscription.plan?.vehicleTypeId || plan?.vehicleTypeId;
       const res = await slotService.searchAvailable(subscriptionVehicleTypeId ? { vehicleTypeId: subscriptionVehicleTypeId } : {});
       const available = (res.data?.result || []).filter((slot) => slot.available && (!subscriptionVehicleTypeId || String(slot.vehicleTypeId || subscriptionVehicleTypeId) === String(subscriptionVehicleTypeId)));
       setAvailableSlots(available);
@@ -150,7 +169,7 @@ export default function ReservationsPage() {
       setAvailableSlots([]);
       console.error('Failed to load available slots:', err);
       const code = err.response?.data?.code;
-      message.error(code === 'SUBSCRIPTION_NOT_ACTIVE' ? 'Xe này chưa có subscription ACTIVE.' : 'Không thể tải subscription hoặc slot trống. Vui lòng thử lại sau.');
+      message.error(code === 'SUBSCRIPTION_NOT_ACTIVE' || code === 1031 ? 'Xe này chưa có subscription ACTIVE.' : 'Không thể tải subscription hoặc slot trống. Vui lòng thử lại sau.');
     } finally {
       setSubscriptionLoading(false);
     }
@@ -215,7 +234,8 @@ export default function ReservationsPage() {
     try {
       const res = await reservationService.createReservation(vehicleId, payload);
       const responseCode = res?.data?.code;
-      const success = res?.data?.success === true;
+      const result = res?.data?.result;
+      const success = res?.data?.success === true || result?.success === true;
 
       if (responseCode === 1050) {
         message.warning('Phiên đậu xe không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại thông tin xe / phiên đặt chỗ.');
@@ -232,7 +252,7 @@ export default function ReservationsPage() {
         return;
       }
 
-      if (responseCode === 'SUBSCRIPTION_NOT_ACTIVE') {
+      if (responseCode === 'SUBSCRIPTION_NOT_ACTIVE' || responseCode === 1031) {
         form.setFields([{ name: 'vehicleId', errors: ['Xe này chưa có subscription ACTIVE phù hợp.'] }]);
         message.error('Xe này chưa có subscription ACTIVE phù hợp.');
         return;
@@ -252,15 +272,24 @@ export default function ReservationsPage() {
     } catch (err) {
       const code = err.response?.data?.code;
       const msgs = {
+        1010: 'Không tìm thấy xe hoặc xe không thuộc tài khoản của bạn.',
+        1031: 'Xe chưa có subscription ACTIVE phù hợp.',
         1032: 'Đặt chỗ không tồn tại hoặc đã bị xử lý.',
         1033: 'Xe này đang có một đặt chỗ chưa hoàn tất (chưa check-in/hủy). Vui lòng hoàn tất hoặc hủy nó trước!',
         1034: 'Không còn slot phù hợp cho xe của bạn trong khung giờ này.',
+        1035: 'Reservation hiện tại không thể huỷ ở trạng thái này.',
         1043: 'Slot này vừa có người đặt hoặc không phù hợp với xe của bạn. Danh sách slot đã được cập nhật, vui lòng chọn slot khác!',
+        VEHICLE_NOT_EXISTED: 'Không tìm thấy xe hoặc xe không thuộc tài khoản của bạn.',
+        VEHICLE_NOT_ACTIVE: 'Xe đang bị khoá hoặc chưa ACTIVE.',
+        RESERVATION_ACTIVE_EXISTS: 'Xe này đang có một reservation đang hoạt động.',
+        SLOT_NOT_EXISTED: 'Không tìm thấy slot đã chọn.',
+        SLOT_NOT_AVAILABLE: 'Slot này không còn trống. Vui lòng chọn slot khác.',
+        VEHICLE_TYPE_NOT_EXISTED: 'Loại xe không hợp lệ.',
+        SUBSCRIPTION_NOT_ACTIVE: 'Xe chưa có subscription ACTIVE phù hợp.',
       };
-      if ([1032, 1033, 1034, 1043].includes(code)) {
+      if (Object.prototype.hasOwnProperty.call(msgs, code)) {
         message.error(msgs[code]);
         form.setFieldValue('slotId', null);
-        await loadSlots(values.startTime, values.endTime);
       } else {
         message.error(err.response?.data?.message || 'Đặt chỗ thất bại');
       }
@@ -302,7 +331,7 @@ export default function ReservationsPage() {
               title="Tạo mã QR check-in"
             />
           )}
-          {['PENDING', 'CONFIRMED'].includes(record.status) && (
+          {record.status === 'CONFIRMED' && (
             <Popconfirm title="Hủy đặt chỗ này?" onConfirm={() => handleCancel(record.id)}>
               <Button type="link" danger icon={<CloseCircleOutlined />} />
             </Popconfirm>
@@ -325,7 +354,6 @@ export default function ReservationsPage() {
             setActiveSubscription(null);
             setAvailableSlots([]);
             setModalOpen(true);
-            loadSlots();
           }}
         >
           Đặt chỗ mới

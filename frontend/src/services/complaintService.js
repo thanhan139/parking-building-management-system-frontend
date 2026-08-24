@@ -14,7 +14,10 @@ const complaintService = {
     });
   },
   getMine: () => api.get('/api/complaints/my'),
+  getMineById: (complaintId) => api.get(`/api/complaints/my/${complaintId}`),
+  remove: (complaintId) => api.delete(`/api/complaints/${complaintId}`),
   getAll: () => api.get('/api/complaints'),
+  getById: (complaintId) => api.get(`/api/complaints/${complaintId}`),
   updateStatus: (complaintId, status) =>
     api.patch(`/api/complaints/${complaintId}/status`, { status }),
 };
