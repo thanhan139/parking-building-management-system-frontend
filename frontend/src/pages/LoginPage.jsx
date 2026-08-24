@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Divider } from 'antd';
+import { Form, Input, Button, Card, Typography, Divider, App } from 'antd';
 import { LockOutlined, PhoneOutlined, RightOutlined } from '@ant-design/icons';
 import { useAuth, roleFromToken } from '../contexts/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
@@ -21,6 +21,7 @@ function homeForRole() {
 }
 
 export default function LoginPage() {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();

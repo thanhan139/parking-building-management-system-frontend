@@ -12,6 +12,7 @@ import GuestCheckInPage from './pages/GuestCheckInPage';
 import CheckOutPage from './pages/staff/CheckOutPage';
 import PricingPage from './pages/admin/PricingPage';
 import PaymentPage from './pages/admin/PaymentPage';
+import PaymentResultPage from './pages/PaymentResultPage';
 
 const MENU_ADMIN = [
   { key: '/admin/pricing', icon: <DollarOutlined />, label: 'Biểu giá' },
@@ -69,7 +70,7 @@ export default function App() {
               <Route path="/reservations" element={<MainPage />} />
               <Route path="/subscriptions" element={<MainPage />} />
               <Route path="/payments" element={<MainPage />} />
-
+              <Route path="/profile" element={<MainPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/internal/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -98,6 +99,7 @@ export default function App() {
               </Route>
 
               <Route path="/staff/guest-check-in" element={<Navigate to="/staff/check-in" replace />} />
+              <Route path="/payment-result" element={<PaymentResultPage />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </AntApp>

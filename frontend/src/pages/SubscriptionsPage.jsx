@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Card, Select, Button, Tag, Typography, Space, message, Modal } from 'antd';
+import { Table, Card, Select, Button, Tag, Typography, Space, Modal, App } from 'antd';
 import { CreditCardOutlined } from '@ant-design/icons';
 import vehicleService from '../services/vehicleService';
 import subscriptionService from '../services/subscriptionService';
@@ -8,6 +8,7 @@ const { Title } = Typography;
 const statusColors = { PENDING: 'orange', ACTIVE: 'green', EXPIRED: 'default', CANCELLED: 'red' };
 
 export default function SubscriptionsPage() {
+  const { message } = App.useApp();
   const [vehicles, setVehicles] = useState([]);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
@@ -24,6 +25,7 @@ export default function SubscriptionsPage() {
   };
 
   const openPurchaseModal = () => {
+    setSelectedPlan(null);
     fetchPlans();
     setPurchaseModal(true);
   };
@@ -55,8 +57,14 @@ export default function SubscriptionsPage() {
   };
 
   const handlePurchase = async () => {
-    if (!selectedPlan || !selectedVehicle) {
+    const vehicle = vehicles.find((v) => v.vehicleId === selectedVehicle);
+    if (!selectedPlan || !vehicle) {
       message.warning('Chọn xe và gói trước!');
+      return;
+    }
+    const plan = plans.find((p) => p.id === selectedPlan);
+    if (plan && vehicle.vehicleTypeCode && plan.vehicleTypeCode !== vehicle.vehicleTypeCode) {
+      message.warning(`Gói này chỉ dành cho xe ${plan.vehicleTypeName || plan.vehicleTypeCode}, không áp dụng cho xe của bạn!`);
       return;
     }
     try {
@@ -92,7 +100,7 @@ export default function SubscriptionsPage() {
         <Title level={4} style={{ margin: 0 }}>Gói đăng ký</Title>
         <Space>
           <Select placeholder="Chọn xe" style={{ width: 250 }} onChange={handleVehicleChange}>
-            {vehicles.map((v) => <Select.Option key={v.id} value={v.id}>{v.plateNumber}</Select.Option>)}
+            {vehicles.map((v) => <Select.Option key={v.vehicleId} value={v.vehicleId}>{v.plateNumber}</Select.Option>)}
           </Select>
           {selectedVehicle && <Button type="primary" icon={<CreditCardOutlined />} onClick={openPurchaseModal}>Mua gói mới</Button>}
         </Space>
@@ -105,10 +113,36 @@ export default function SubscriptionsPage() {
       )}
 
       <Modal title="Mua gói đăng ký" open={purchaseModal} onCancel={() => setPurchaseModal(false)} onOk={handlePurchase} okText="Thanh toán VNPay" cancelText="Hủy">
-        <p>Chọn gói đăng ký cho xe:</p>
-        <Select placeholder="Chọn gói" style={{ width: '100%' }} onChange={(v) => setSelectedPlan(v)}>
-          {plans.map((p) => <Select.Option key={p.id} value={p.id}>{p.name} - {p.durationMonths} tháng - {Number(p.price).toLocaleString()} VND</Select.Option>)}
-        </Select>
+        {(() => {
+          const vehicle = vehicles.find((v) => v.vehicleId === selectedVehicle);
+          return (
+            <>
+              <p>
+                Chọn gói đăng ký cho xe{' '}
+                <strong>{vehicle?.plateNumber}</strong>
+                {vehicle?.vehicleTypeName ? (
+                  <Tag color="blue" style={{ marginLeft: 8 }}>{vehicle.vehicleTypeName}</Tag>
+                ) : null}
+              </p>
+              <Select
+                placeholder="Chọn gói"
+                style={{ width: '100%' }}
+                value={selectedPlan}
+                onChange={(v) => setSelectedPlan(v)}
+              >
+                {plans.map((p) => {
+                  const mismatch = vehicle?.vehicleTypeCode && p.vehicleTypeCode !== vehicle.vehicleTypeCode;
+                  return (
+                    <Select.Option key={p.id} value={p.id} disabled={mismatch || p.isActive === false}>
+                      {p.name} - {p.durationMonths} tháng - {Number(p.price).toLocaleString()} VND
+                      {mismatch ? ` (chỉ dành cho xe ${p.vehicleTypeName || p.vehicleTypeCode})` : ''}
+                    </Select.Option>
+                  );
+                })}
+              </Select>
+            </>
+          );
+        })()}
       </Modal>
     </div>
   );
