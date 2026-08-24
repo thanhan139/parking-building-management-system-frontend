@@ -8,8 +8,14 @@ const METHODS = [
   { value: 'VNPAY', label: 'Quét mã QR' },
 ];
 
+const METHOD_GOI = [{ value: 'SUBSCRIPTION', label: 'Gói tháng' }];
+
 export default function PaymentStep({ step = 4, result, paid, paying, onPay, onNext, onVnPay }) {
-  const [method, setMethod] = useState('CASH');
+  // Xe con han goi thi tien gui da la 0. Neu khong con phu phi nao thi
+  // khong thu gi ca — chi ghi nhan tra bang goi roi mo barrier.
+  const traBangGoi = !!result?.freeParking && Number(result?.amountTotal || 0) === 0;
+  const danhSach = traBangGoi ? METHOD_GOI : METHODS;
+  const [method, setMethod] = useState(traBangGoi ? 'SUBSCRIPTION' : 'CASH');
 
   if (paid) {
     return (
@@ -31,7 +37,7 @@ export default function PaymentStep({ step = 4, result, paid, paying, onPay, onN
   return (
     <Card title={`${step} · Khách trả tiền`}>
       <Space wrap style={{ marginBottom: 16 }}>
-        {METHODS.map((h) => (
+        {danhSach.map((h) => (
           <Button
             key={h.value}
             type={method === h.value ? 'primary' : 'default'}
@@ -54,11 +60,13 @@ export default function PaymentStep({ step = 4, result, paid, paying, onPay, onN
           background: '#2e7d4f', borderColor: '#2e7d4f', color: '#fff',
         }}
       >
-        {method === 'VNPAY' ? 'HIỆN MÃ QR CHO KHÁCH QUÉT' : 'ĐÃ THU TIỀN — MỞ BARRIER'}
+        {method === 'VNPAY' ? 'HIỆN MÃ QR CHO KHÁCH QUÉT'
+          : traBangGoi ? 'MỞ BARRIER — KHÁCH CÓ GÓI'
+          : 'ĐÃ THU TIỀN — MỞ BARRIER'}
       </Button>
       <p style={{ color: '#c0392b', fontSize: 12, textAlign: 'center', marginTop: 8, marginBottom: 0 }}>
-        {method === 'VNPAY'
-          ? 'Khách quét xong, màn hình tự chuyển.'
+        {method === 'VNPAY' ? 'Khách quét xong, màn hình tự chuyển.'
+          : traBangGoi ? 'Không thu tiền — xe còn hạn gói.'
           : 'Bấm xong không rút lại được.'}
       </p>
     </Card>

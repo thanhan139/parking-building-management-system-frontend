@@ -20,6 +20,8 @@ const checkOutService = {
   startPayos: (ticketCode) => api.post('/api/check-out/payos', null, { params: { ticketCode } }),
 
   paymentStatus: (ticketCode) => api.get('/api/check-out/payment-status', { params: { ticketCode } }),
+
+  getPhotos: (ticketCode) => api.get('/api/check-out/photos', { params: { ticketCode } }),
 };
 
 const ERROR_TEXT = {

@@ -6,6 +6,7 @@ import ExitPhotos from './ExitPhotos';
 import FeeSummary from './FeeSummary';
 import PaymentStep from './PaymentStep';
 import PayosQr from './PayosQr';
+import EntryPhotos from './EntryPhotos';
 
 const EXIT_GATE = 'CONG-RA';
 
@@ -95,6 +96,8 @@ export default function CheckOutPage() {
           ticketCode={ticket}
           onNext={paid ? null : nextVehicle}
         />
+
+        {ticket && <EntryPhotos ticketCode={ticket} />}
 
         {ticket && !result && <ExitPhotos step={2} onUpload={uploadPhotos} loading={busy} />}
 

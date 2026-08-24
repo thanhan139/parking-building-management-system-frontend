@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, Modal, Spin, Typography } from 'antd';
 import QRCode from 'qrcode';
 import checkOutService, { errorText } from '../../services/checkOutService';
@@ -10,12 +10,18 @@ export default function PayosQr({ ticketCode, onPaid, onClose }) {
   const [order, setOrder] = useState(null);
   const [image, setImage] = useState(null);
   const [error, setError] = useState(null);
+  const donDaGoi = useRef(null);
 
   useEffect(() => {
     let stopped = false;
 
-    checkOutService
-      .startPayos(ticketCode)
+    // Tao don la viec ghi that nen chi duoc goi MOT lan, nhung StrictMode chay
+    // effect hai lan. Lan hai dung lai dung loi hua cua lan mot, khong goi them.
+    if (donDaGoi.current?.ticketCode !== ticketCode) {
+      donDaGoi.current = { ticketCode, cho: checkOutService.startPayos(ticketCode) };
+    }
+
+    donDaGoi.current.cho
       .then((res) => {
         if (stopped) return;
         const data = res.data.result;
