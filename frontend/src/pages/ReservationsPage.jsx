@@ -15,6 +15,12 @@ const statusColors = {
   PENDING: 'orange', CONFIRMED: 'green', USED: 'blue', EXPIRED: 'default', CANCELLED: 'red',
 };
 
+const isActiveSlot = (slot) => {
+  const slotStatus = String(slot?.status || '').toUpperCase();
+  const statusAllowsReservation = !slotStatus || ['AVAILABLE', 'ACTIVE'].includes(slotStatus);
+  return slot?.available !== false && slot?.active !== false && statusAllowsReservation;
+};
+
 const getActiveReservation = (reservations, vehicleId) =>
   reservations.some((reservation) => {
     const sameVehicle = reservation.vehicleId != null && String(reservation.vehicleId) === String(vehicleId);
@@ -109,7 +115,7 @@ export default function ReservationsPage() {
     }
 
     const slot = availableSlots.find((item) => String(item.slotId) === String(values.slotId));
-    if (!slot || slot.available === false) {
+    if (!slot || !isActiveSlot(slot)) {
       return { field: 'slotId', message: 'Slot đã không còn trống. Vui lòng chọn vị trí khác.' };
     }
 
@@ -163,7 +169,7 @@ export default function ReservationsPage() {
       setActiveSubscription(enrichedSubscription);
       const subscriptionVehicleTypeId = subscription.vehicleTypeId || subscription.plan?.vehicleTypeId || plan?.vehicleTypeId;
       const res = await slotService.searchAvailable(subscriptionVehicleTypeId ? { vehicleTypeId: subscriptionVehicleTypeId } : {});
-      const available = (res.data?.result || []).filter((slot) => slot.available && (!subscriptionVehicleTypeId || String(slot.vehicleTypeId || subscriptionVehicleTypeId) === String(subscriptionVehicleTypeId)));
+      const available = (res.data?.result || []).filter((slot) => isActiveSlot(slot) && (!subscriptionVehicleTypeId || String(slot.vehicleTypeId || subscriptionVehicleTypeId) === String(subscriptionVehicleTypeId)));
       setAvailableSlots(available);
     } catch (err) {
       setAvailableSlots([]);
