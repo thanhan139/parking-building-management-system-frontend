@@ -6,13 +6,18 @@ import reservationService from '../services/reservationService';
 import vehicleService from '../services/vehicleService';
 import slotService from '../services/slotService';
 import subscriptionService from '../services/subscriptionService';
-import { disabledPastDate, pastTimeDisabled } from '../utils/timeUtils';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
 
 const statusColors = {
   PENDING: 'orange', CONFIRMED: 'green', USED: 'blue', EXPIRED: 'default', CANCELLED: 'red',
+};
+
+const isActiveSlot = (slot) => {
+  const slotStatus = String(slot?.status || '').toUpperCase();
+  const statusAllowsReservation = !slotStatus || ['AVAILABLE', 'ACTIVE'].includes(slotStatus);
+  return slot?.available !== false && slot?.active !== false && statusAllowsReservation;
 };
 
 const getActiveReservation = (reservations, vehicleId) =>
@@ -35,6 +40,7 @@ export default function ReservationsPage() {
   const [activeSubscription, setActiveSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [qrModal, setQrModal] = useState(null); // { reservationId, token, expiresAt }
   const [qrLoading, setQrLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -57,6 +63,10 @@ export default function ReservationsPage() {
     ].filter(Boolean);
     return vehicleTypes.some((vehicleType) => subscriptionTypes.some((subscriptionType) => String(subscriptionType) === String(vehicleType)));
   };
+
+  const getVehicleTypeId = (vehicle, plan, types = vehicleTypes) => vehicle?.vehicleTypeId
+    || plan?.vehicleTypeId
+    || types.find((type) => type.code === vehicle?.vehicleTypeCode || type.vehicleTypeCode === vehicle?.vehicleTypeCode)?.id;
 
   const fetchReservations = async () => {
     setLoading(true);
@@ -109,7 +119,7 @@ export default function ReservationsPage() {
     }
 
     const slot = availableSlots.find((item) => String(item.slotId) === String(values.slotId));
-    if (!slot || slot.available === false) {
+    if (!slot || !isActiveSlot(slot)) {
       return { field: 'slotId', message: 'Slot đã không còn trống. Vui lòng chọn vị trí khác.' };
     }
 
@@ -138,13 +148,16 @@ export default function ReservationsPage() {
 
     setSubscriptionLoading(true);
     try {
-      const [subscriptionResponse, plansResponse] = await Promise.all([
+      const [subscriptionResponse, plansResponse, vehicleTypesResponse] = await Promise.all([
         subscriptionService.getActiveSubscription(vehicleId),
         subscriptionService.getPlans(),
+        vehicleService.getVehicleTypes(),
       ]);
       const subscription = subscriptionResponse.data?.result || subscriptionResponse.data;
       const plans = plansResponse.data?.result || plansResponse.data || [];
+      const types = vehicleTypesResponse.data?.result || vehicleTypesResponse.data || [];
       setSubscriptionPlans(plans);
+      setVehicleTypes(types);
       const subscriptionStatus = String(subscription?.status || '').toUpperCase();
 
       if (!subscription || subscriptionStatus !== 'ACTIVE') {
@@ -161,9 +174,9 @@ export default function ReservationsPage() {
       const plan = getSubscriptionPlan(subscription, plans);
       const enrichedSubscription = { ...subscription, plan };
       setActiveSubscription(enrichedSubscription);
-      const subscriptionVehicleTypeId = subscription.vehicleTypeId || subscription.plan?.vehicleTypeId || plan?.vehicleTypeId;
+      const subscriptionVehicleTypeId = getVehicleTypeId(vehicle, plan, types);
       const res = await slotService.searchAvailable(subscriptionVehicleTypeId ? { vehicleTypeId: subscriptionVehicleTypeId } : {});
-      const available = (res.data?.result || []).filter((slot) => slot.available && (!subscriptionVehicleTypeId || String(slot.vehicleTypeId || subscriptionVehicleTypeId) === String(subscriptionVehicleTypeId)));
+      const available = (res.data?.result || []).filter((slot) => isActiveSlot(slot) && (!subscriptionVehicleTypeId || !slot.vehicleTypeId || String(slot.vehicleTypeId) === String(subscriptionVehicleTypeId)));
       setAvailableSlots(available);
     } catch (err) {
       setAvailableSlots([]);
