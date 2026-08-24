@@ -82,6 +82,7 @@ export default function ReservationsPage() {
       const code = err.response?.data?.code;
       const msgs = {
         1031: 'Xe chưa có subscription active.',
+        1061: 'Xe của bạn đang bị khóa hoặc chưa kích hoạt, không thể check-in.',
         1062: 'Chưa đến giờ hoặc đã quá giờ check-in của reservation này.',
         1032: 'Reservation không hợp lệ.',
       };
