@@ -4,6 +4,16 @@ import userService from '../services/userService';
 
 const AuthContext = createContext(null);
 
+// Backend gui vai trong truong "scope" cua JWT, khong gui kem trong user.
+export function roleFromToken() {
+  try {
+    const token = localStorage.getItem('token');
+    return JSON.parse(atob(token.split('.')[1])).scope || null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
@@ -14,6 +24,7 @@ export function AuthProvider({ children }) {
     }
   });
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState(roleFromToken);
 
   const fetchAndStoreProfile = async () => {
     const res = await userService.getProfile();
@@ -22,6 +33,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
     }
+    setRole(roleFromToken());
     return userData;
   };
 
@@ -40,6 +52,9 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const isStaff = ['STAFF', 'MANAGER', 'ADMIN'].includes(role);
+  const isAdmin = role === 'ADMIN';
+
   const register = async (data) => {
     return await authService.register(data);
   };
@@ -56,6 +71,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setRole(null);
   };
 
   useEffect(() => {
@@ -67,7 +83,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, role, isStaff, isAdmin, login, register, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
