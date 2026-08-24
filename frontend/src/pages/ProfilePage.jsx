@@ -9,7 +9,8 @@ const { Title, Text } = Typography;
 
 export default function ProfilePage() {
   const { message } = App.useApp();
-  const { user, updateUser } = useAuth();
+  const { user, role, updateUser } = useAuth();
+  const canUploadAvatar = role === 'DRIVER';
 
   const beforeUpload = (file) => {
     const isImage = file.type.startsWith('image/');
@@ -130,13 +131,32 @@ export default function ProfilePage() {
       <Row gutter={[24, 24]}>
         <Col xs={24} md={8}>
           <Card loading={loading} style={{ textAlign: 'center', borderRadius: 12 }}>
-            <Upload
-              showUploadList={false}
-              beforeUpload={beforeUpload}
-              customRequest={handleUploadAvatar}
-              accept="image/*"
-            >
-              <div style={{ cursor: 'pointer', display: 'inline-block' }}>
+            {canUploadAvatar ? (
+              <Upload
+                showUploadList={false}
+                beforeUpload={beforeUpload}
+                customRequest={handleUploadAvatar}
+                accept="image/*"
+              >
+                <div style={{ cursor: 'pointer', display: 'inline-block' }}>
+                  <Avatar
+                    size={120}
+                    src={avatarUrl}
+                    icon={<UserOutlined />}
+                    style={{
+                      background: avatarUrl ? undefined : 'linear-gradient(135deg, #1677ff, #69b1ff)',
+                      boxShadow: '0 4px 16px rgba(22,119,255,0.25)',
+                    }}
+                  />
+                  <div style={{ marginTop: 12 }}>
+                    <Button icon={<UploadOutlined />} loading={uploadingAvatar} size="small">
+                      Đổi ảnh
+                    </Button>
+                  </div>
+                </div>
+              </Upload>
+            ) : (
+              <div style={{ display: 'inline-block' }}>
                 <Avatar
                   size={120}
                   src={avatarUrl}
@@ -147,12 +167,10 @@ export default function ProfilePage() {
                   }}
                 />
                 <div style={{ marginTop: 12 }}>
-                  <Button icon={<UploadOutlined />} loading={uploadingAvatar} size="small">
-                    Đổi ảnh
-                  </Button>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Tài khoản nội bộ không đổi được ảnh</Text>
                 </div>
               </div>
-            </Upload>
+            )}
             <Title level={4} style={{ marginTop: 16, marginBottom: 4 }}>
               {user?.fullName || 'User'}
             </Title>
