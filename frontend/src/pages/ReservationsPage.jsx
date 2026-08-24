@@ -6,6 +6,7 @@ import reservationService from '../services/reservationService';
 import vehicleService from '../services/vehicleService';
 import slotService from '../services/slotService';
 import subscriptionService from '../services/subscriptionService';
+import { disabledPastDate, pastTimeDisabled } from '../utils/timeUtils';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -33,11 +34,17 @@ export default function ReservationsPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [activeSubscription, setActiveSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [qrModal, setQrModal] = useState(null); // { reservationId, token, expiresAt }
   const [qrLoading, setQrLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const countdownRef = useRef(null);
+
+  const resolveTypeId = (vehicleId) => {
+    const vehicle = vehicles.find((v) => v.vehicleId === vehicleId);
+    return vehicleTypes.find((vt) => vt.code === vehicle?.vehicleTypeCode)?.id;
+  };
 
   const fetchReservations = async () => {
     setLoading(true);
@@ -55,9 +62,7 @@ export default function ReservationsPage() {
     try {
       const res = await vehicleService.getMyVehicles();
       setVehicles(res.data?.result || []);
-    } catch (err) {
-      console.error('Failed to load vehicles:', err);
-    }
+    } catch (err) {}
   };
 
   const validateReservationDraft = (values) => {
@@ -102,12 +107,10 @@ export default function ReservationsPage() {
     if (getActiveReservation(reservations, vehicleId)) {
       return { field: 'vehicleId', message: 'Xe này đang có một reservation đang hoạt động. Vui lòng hoàn tất hoặc hủy đặt chỗ hiện tại trước.' };
     }
-
     return null;
   };
 
   const handleVehicleChange = async (vehicleId) => {
-    const vehicle = vehicles.find((item) => String(item.vehicleId) === String(vehicleId));
     setSelectedVehicleId(vehicleId);
     form.setFieldsValue({ slotId: undefined });
     setAvailableSlots([]);
@@ -158,7 +161,7 @@ export default function ReservationsPage() {
     }
   };
 
-  useEffect(() => { fetchReservations(); fetchVehicles(); }, []);
+  useEffect(() => { fetchReservations(); fetchVehicles(); fetchVehicleTypes(); }, []);
 
   const startCountdown = (expiresAt) => {
     clearInterval(countdownRef.current);
@@ -200,10 +203,11 @@ export default function ReservationsPage() {
   };
 
   const handleSubmit = async (values) => {
+    if (submitting) return;
     const validation = validateReservationDraft(values);
     if (validation) {
       form.setFields([{ name: validation.field, errors: [validation.message] }]);
-      message.warning(validation.message);
+      message.error(validation.message);
       return;
     }
 
@@ -252,30 +256,19 @@ export default function ReservationsPage() {
       message.error('Hệ thống đang gặp lỗi dữ liệu, vui lòng thử lại sau hoặc liên hệ admin.');
     } catch (err) {
       const code = err.response?.data?.code;
-      if (code === 1050) {
-        message.warning('Phiên đậu xe không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại thông tin xe / phiên đặt chỗ.');
-        setModalOpen(false);
-        form.resetFields();
-        setSelectedVehicleId(null);
-        setAvailableSlots([]);
-        return;
+      const msgs = {
+        1032: 'Đặt chỗ không tồn tại hoặc đã bị xử lý.',
+        1033: 'Xe này đang có một đặt chỗ chưa hoàn tất (chưa check-in/hủy). Vui lòng hoàn tất hoặc hủy nó trước!',
+        1034: 'Không còn slot phù hợp cho xe của bạn trong khung giờ này.',
+        1043: 'Slot này vừa có người đặt hoặc không phù hợp với xe của bạn. Danh sách slot đã được cập nhật, vui lòng chọn slot khác!',
+      };
+      if ([1032, 1033, 1034, 1043].includes(code)) {
+        message.error(msgs[code]);
+        form.setFieldValue('slotId', null);
+        await loadSlots(values.startTime, values.endTime);
+      } else {
+        message.error(err.response?.data?.message || 'Đặt chỗ thất bại');
       }
-
-      if (code === 1066) {
-        form.setFields([{ name: 'slotId', errors: ['Bạn chưa upload đủ ảnh xác nhận ra khỏi bãi.'] }]);
-        message.error('Bạn chưa upload đủ ảnh xác nhận ra khỏi bãi.');
-        return;
-      }
-
-      const status = err.response?.status;
-      if (status === 400 || status === 500) {
-        console.error('Reservation creation failed due to backend schema/data issue:', err);
-        message.error('Hệ thống đang gặp lỗi dữ liệu, vui lòng thử lại sau hoặc liên hệ admin.');
-        return;
-      }
-
-      const fallback = err.response?.data?.message || 'Đặt chỗ thất bại';
-      message.error(fallback);
     } finally {
       setSubmitting(false);
     }
@@ -333,10 +326,11 @@ export default function ReservationsPage() {
           icon={<PlusOutlined />}
           onClick={() => {
             form.resetFields();
-            setAvailableSlots([]);
             setSelectedVehicleId(null);
             setActiveSubscription(null);
+            setAvailableSlots([]);
             setModalOpen(true);
+            loadSlots();
           }}
         >
           Đặt chỗ mới
