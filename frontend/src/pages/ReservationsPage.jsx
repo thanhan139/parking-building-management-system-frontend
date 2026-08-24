@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, Popconfirm, Descriptions, App, Input } from 'antd';
 import { PlusOutlined, CloseCircleOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
+import QRCode from 'react-qr-code';
 import reservationService from '../services/reservationService';
 import vehicleService from '../services/vehicleService';
 import slotService from '../services/slotService';
@@ -370,12 +371,32 @@ export default function ReservationsPage() {
               color: '#666',
               marginBottom: 12,
             }}>
-              Đưa mã token này cho staff quét tại cổng vào
+              Quét mã QR này bằng camera để staff xác nhận check-in
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              background: '#fff',
+              padding: 18,
+              borderRadius: 12,
+              border: '1px solid #f0f0f0',
+              marginBottom: 16,
+            }}>
+              <QRCode
+                value={qrModal.token}
+                size={220}
+                bgColor="#ffffff"
+                fgColor="#111827"
+                level="H"
+              />
+            </div>
+            <div style={{ marginBottom: 12, fontSize: 12, color: '#666' }}>
+              Hoặc copy token bên dưới nếu cần dùng thủ công
             </div>
             <Input.TextArea
               value={qrModal.token}
               readOnly
-              autoSize={{ minRows: 3, maxRows: 5 }}
+              autoSize={{ minRows: 2, maxRows: 4 }}
               style={{ fontFamily: 'monospace', fontSize: 13, marginBottom: 12 }}
             />
             <Space style={{ marginBottom: 16 }}>
