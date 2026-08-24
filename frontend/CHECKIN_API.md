@@ -2,8 +2,6 @@
 
 Tài liệu này mô tả toàn bộ API liên quan đến luồng **check-in** cho khách vãng lai (Guest) và khách hội viên (Member) qua QR token, cùng với API đặt chỗ (Reservation).
 
-> Phần **check-out** (Guest lẫn Member) thuộc phạm vi của nhóm khác, không nằm trong tài liệu này.
-
 ## Quy ước chung
 
 - Tất cả endpoint yêu cầu header `Authorization: Bearer <accessToken>`.
@@ -62,13 +60,13 @@ Content-Type: multipart/form-data
 }
 ```
 
-> ⚠️ `ticketCode` là **chứng từ duy nhất** khách cầm để check-out (in vé/gửi cho khách). FE phải hiển thị/lưu giá trị này để dùng ở bước check-out.
+> ⚠️ `ticketCode` là **chứng từ duy nhất** của phiên gửi xe này. FE phải hiển thị/lưu giá trị này lại (không dùng để checkout ở đây, chỉ để tra cứu/đối chiếu phiên).
 
 **Lỗi có thể gặp:**
 | Code | Ý nghĩa |
 |---|---|
 | `NO_SLOT_AVAILABLE` (1034) | Floor dành cho Guest đã hết chỗ cho loại xe này |
-| `GUEST_SESSION_ACTIVE_EXISTS` (1049) | Biển số này đang có 1 phiên Guest ACTIVE khác chưa checkout |
+| `GUEST_SESSION_ACTIVE_EXISTS` (1049) | Biển số này đang có 1 phiên Guest ACTIVE khác chưa kết thúc |
 
 ---
 
@@ -88,17 +86,15 @@ Content-Type: application/json
 
 ```json
 {
-  "slotId": 10,
-  "startTime": "2026-08-24T09:00:00",
-  "endTime": "2026-08-24T18:00:00"
+  "slotId": 10
 }
 ```
 
 | Field | Kiểu | Bắt buộc | Ghi chú |
 |---|---|---|---|
 | `slotId` | number | ✅ | Slot muốn đặt |
-| `startTime` | datetime | ✅ | Giờ bắt đầu |
-| `endTime` | datetime | ❌ | Giờ kết thúc (nếu bỏ trống, hệ thống áp dụng thời gian ân hạn 1 giờ kể từ `startTime` để tự huỷ nếu không check-in) |
+| `startTime` | - | - | Hệ thống tự lấy từ ngày bắt đầu của subscription đã chọn |
+| `endTime` | - | - | Hệ thống tự lấy đến hết ngày kết thúc của subscription đã chọn |
 
 **Response `201 Created`** (bọc `ApiResponse`):
 
@@ -127,9 +123,9 @@ Content-Type: application/json
 }
 ```
 
-> - `status = CONFIRMED` nếu xe có subscription ACTIVE còn hạn tại thời điểm đặt → được phép tạo QR check-in ngay.
-> - `status = PENDING` nếu xe **chưa có subscription active** → chưa thể tạo QR. Khi subscription của xe được kích hoạt sau đó (thanh toán thành công), hệ thống **tự động nâng cấp** reservation này lên `CONFIRMED` (không cần FE gọi thêm API nào).
-> - Nếu reservation `PENDING` quá hạn (`endTime` đã qua, hoặc không có `endTime` và quá 1 giờ kể từ `startTime`) mà vẫn chưa có subscription → hệ thống tự động chuyển sang `EXPIRED` và giải phóng slot (chạy ngầm mỗi 5 phút).
+> - Xe phải có subscription `ACTIVE` còn hạn và subscription phải có `vehicle_type` phù hợp với `vehicle_type` của xe.
+> - `startTime` được hệ thống đặt tại `startDate 00:00`; `endTime` là đầu ngày sau `endDate` (mốc kết thúc độc quyền).
+> - Reservation giữ slot ở trạng thái `RESERVED` cho đến khi được xử lý bởi flow check-in/check-out tương ứng.
 
 **Lỗi có thể gặp:** `VEHICLE_NOT_EXISTED`, `VEHICLE_NOT_ACTIVE` (1061 — xe bị banned/inactive), `RESERVATION_ACTIVE_EXISTS`, `SLOT_NOT_EXISTED`, `SLOT_NOT_AVAILABLE`, `VEHICLE_TYPE_NOT_EXISTED`.
 
@@ -271,7 +267,64 @@ Content-Type: multipart/form-data
 
 ## 6. Ghi chú vận hành cho FE
 
-- **Guest**: chỉ cần biển số + loại xe, không chọn slot. `ticketCode` trả về sau check-in là chứng từ của phiên gửi xe (dùng cho các bước sau, kể cả check-out do nhóm khác xử lý).
+- **Guest**: chỉ cần biển số + loại xe, không chọn slot. `ticketCode` trả về sau check-in là chứng từ định danh phiên gửi xe.
 - **Member**: luồng là `tạo Reservation` → `tạo QR token` (khi tới giờ, còn hạn 5 phút) → `staff quét QR + đọc biển số thực tế để check-in`.
 - Ảnh luôn là 5 file bắt buộc theo đúng field name, thiếu 1 trong 5 sẽ bị từ chối (lỗi `INVALID_IMAGE` — 1015).
 - Ảnh được lưu trên Cloudinary, `file_path` trả về (nếu FE có endpoint xem ảnh sau này) sẽ là URL `https://...cloudinary.../...`, không phải path nội bộ server.
+
+---
+
+## 7. Complaint (khiếu nại của tài khoản đã đăng ký)
+
+Complaint yêu cầu user đã đăng nhập nhưng **không yêu cầu subscription**. Cả user đã từng dùng Guest và Member đều có thể gửi khiếu nại.
+
+### 7.1. Tạo complaint
+
+```
+POST /api/complaints
+Content-Type: multipart/form-data
+```
+
+**Form fields:**
+
+| Field | Kiểu | Bắt buộc | Ghi chú |
+|---|---|---|---|
+| `title` | string | Có | Tiêu đề khiếu nại |
+| `description` | string | Có | Nội dung chi tiết |
+| `sessionId` | number | Không | Có thể null. Nếu có phải là session của user và đã `COMPLETED` |
+| `images` | file[] | Có | Từ 1 đến tối đa 5 ảnh, mỗi ảnh jpg/png/webp tối đa 5MB |
+
+Mỗi user chỉ được có tối đa **5 complaint ở trạng thái `PENDING`** tại một thời điểm. Khi complaint chuyển sang trạng thái khác, user có thể gửi complaint mới.
+
+### 7.2. Xem complaint của tôi
+
+```
+GET /api/complaints/my
+```
+
+### 7.3. Staff/Admin xem tất cả complaint
+
+```
+GET /api/complaints
+```
+
+Quyền: `STAFF`, `ADMIN`.
+
+### 7.4. Staff/Admin cập nhật trạng thái
+
+```
+PATCH /api/complaints/{complaintId}/status
+Content-Type: application/json
+```
+
+```json
+{
+  "status": "IN_PROGRESS"
+}
+```
+
+Các trạng thái: `PENDING`, `IN_PROGRESS`, `RESOLVED`, `REJECTED`, `OVERTIME`.
+
+Complaint ở `PENDING` quá 5 ngày kể từ `createdAt` sẽ tự động chuyển thành `OVERTIME` bởi tác vụ nền chạy mỗi 5 phút.
+
+Nếu `sessionId` khác null, backend lấy `vehicleId` thông qua parking session. Backend không cho dùng session của user khác hoặc session chưa checkout thành công.

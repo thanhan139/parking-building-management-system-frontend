@@ -43,18 +43,26 @@ export default function MemberCheckInPage() {
         entryGate: values.entryGate,
         images,
       });
-      setTicket(res.data);
+      setTicket(res.data?.result || res.data);
       message.success('Check-in thành viên thành công');
     } catch (err) {
       const code = err.response?.data?.code;
       const messages = {
-        INVALID_QR_TOKEN: 'Mã QR không hợp lệ hoặc đã hết hạn.',
-        INVALID_PLATE_NUMBER: 'Biển số hiện tại không khớp với thông tin member.',
-        INVALID_ENTRY_GATE: 'Cổng vào không hợp lệ cho member này.',
-        INVALID_IMAGE: 'Vui lòng cung cấp đủ 5 ảnh hợp lệ.',
-        MEMBER_ALREADY_CHECKED_IN: 'Thành viên này đã check-in và chưa checkout.',
+        QR_TOKEN_NOT_EXISTED: 'Mã QR không tồn tại.',
+        QR_TOKEN_EXPIRED: 'Mã QR đã hết hạn. Vui lòng tạo mã QR mới.',
+        QR_TOKEN_ALREADY_USED: 'Mã QR này đã được sử dụng. Vui lòng tạo mã QR mới.',
+        PLATE_MISMATCH: 'Biển số hiện tại không khớp với reservation.',
+        SLOT_NOT_AVAILABLE: 'Slot không còn sẵn sàng. Vui lòng kiểm tra lại reservation.',
+        VEHICLE_NOT_ACTIVE: 'Vehicle chưa ACTIVE, không thể check-in.',
+        SUBSCRIPTION_NOT_ACTIVE: 'Subscription của vehicle chưa ACTIVE.',
+        RESERVATION_ACTIVE_EXISTS: 'Vehicle đang có parking session hoặc reservation đang hoạt động.',
       };
-      message.error(messages[code] || err.response?.data?.message || 'Check-in thành viên thất bại');
+      if (err.response?.status === 400 || err.response?.status === 500) {
+        console.error('Member check-in failed:', err);
+        message.error('Hệ thống đang gặp lỗi dữ liệu, vui lòng thử lại sau hoặc liên hệ admin.');
+      } else {
+        message.error(messages[code] || err.response?.data?.message || 'Check-in thành viên thất bại');
+      }
     } finally {
       setLoading(false);
     }

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, Popconfirm, Descriptions, App, Input } from 'antd';
+import { Table, Button, Modal, Form, Select, Tag, Space, Typography, Popconfirm, Descriptions, App, Input, Alert, Card, Spin } from 'antd';
 import { PlusOutlined, CloseCircleOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
 import QRCode from 'react-qr-code';
 import reservationService from '../services/reservationService';
 import vehicleService from '../services/vehicleService';
 import slotService from '../services/slotService';
+import subscriptionService from '../services/subscriptionService';
 import { disabledPastDate, pastTimeDisabled } from '../utils/timeUtils';
 import dayjs from 'dayjs';
 
@@ -13,6 +14,13 @@ const { Title } = Typography;
 const statusColors = {
   PENDING: 'orange', CONFIRMED: 'green', USED: 'blue', EXPIRED: 'default', CANCELLED: 'red',
 };
+
+const getActiveReservation = (reservations, vehicleId) =>
+  reservations.some((reservation) => {
+    const sameVehicle = reservation.vehicleId != null && String(reservation.vehicleId) === String(vehicleId);
+    const activeStatus = ['PENDING', 'CONFIRMED', 'USED'].includes(reservation.status);
+    return sameVehicle && activeStatus;
+  });
 
 export default function ReservationsPage() {
   const { message } = App.useApp();
@@ -24,6 +32,8 @@ export default function ReservationsPage() {
   const [detailModal, setDetailModal] = useState(null);
   const [form] = Form.useForm();
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+  const [activeSubscription, setActiveSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [qrModal, setQrModal] = useState(null); // { reservationId, token, expiresAt }
   const [qrLoading, setQrLoading] = useState(false);
@@ -55,66 +65,99 @@ export default function ReservationsPage() {
     } catch (err) {}
   };
 
-  const fetchVehicleTypes = async () => {
-    try {
-      const res = await vehicleService.getVehicleTypes();
-      setVehicleTypes(res.data?.result || []);
-    } catch (err) {}
-  };
-
-  const loadSlots = async (startTime = null, endTime = null, vehicleId = selectedVehicleId) => {
-    try {
-      const params = {};
-      // Da chon xe ma khong suy ra duoc loai xe -> danh sach trong thay vi hien tat ca.
-      const vtId = resolveTypeId(vehicleId);
-      if (vehicleId && !vtId) {
-        setAvailableSlots([]);
-        return;
-      }
-      if (vtId) params.vehicleTypeId = vtId;
-      if (startTime) params.startTime = startTime.format('YYYY-MM-DDTHH:mm:ss');
-      if (endTime) params.endTime = endTime.format('YYYY-MM-DDTHH:mm:ss');
-      const res = await slotService.searchAvailable(params);
-      const list = (res.data?.result || []).filter((s) => s.available);
-      setAvailableSlots(list);
-      return list;
-    } catch (err) {
-      setAvailableSlots([]);
-      return [];
-    }
-  };
-
   const validateReservationDraft = (values) => {
-    if (!values.vehicleId) return { field: 'vehicleId', message: 'Chọn xe!' };
-    if (!values.slotId) return { field: 'slotId', message: 'Chọn slot!' };
-    if (!values.startTime) return { field: 'startTime', message: 'Chọn thời gian bắt đầu!' };
-    if (!values.endTime) return { field: 'endTime', message: 'Chọn thời gian kết thúc!' };
-    if (values.startTime.isBefore(dayjs())) {
-      return { field: 'startTime', message: 'Không được chọn thời gian trong quá khứ!' };
+    const vehicleId = values.vehicleId ?? selectedVehicleId;
+    const vehicle = vehicles.find((item) => String(item.vehicleId) === String(vehicleId));
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (!vehicleId || !vehicle) {
+      return { field: 'vehicleId', message: 'Vui lòng chọn xe hợp lệ trước khi đặt chỗ.' };
     }
-    if (values.endTime.isBefore(dayjs())) {
-      return { field: 'endTime', message: 'Không được chọn thời gian trong quá khứ!' };
+
+    if (!activeSubscription || String(activeSubscription.status || '').toUpperCase() !== 'ACTIVE') {
+      return { field: 'vehicleId', message: 'Xe này chưa có subscription ACTIVE phù hợp. Vui lòng đăng ký hoặc gia hạn gói trước.' };
     }
-    if (!values.endTime.isAfter(values.startTime)) {
-      return { field: 'endTime', message: 'Thời gian kết thúc phải sau thời gian bắt đầu!' };
+
+    const vehicleTypeMatches = [vehicle.vehicleTypeId, vehicle.vehicleTypeCode].filter(Boolean)
+      .some((value) => [activeSubscription.vehicleTypeId, activeSubscription.vehicleTypeCode, activeSubscription.plan?.vehicleTypeId, activeSubscription.plan?.vehicleTypeCode].filter(Boolean)
+        .some((subscriptionType) => String(subscriptionType) === String(value)));
+    if (!vehicleTypeMatches) {
+      return { field: 'vehicleId', message: 'Loại xe không phù hợp với subscription ACTIVE đang áp dụng.' };
+    }
+
+    const vehicleStatus = String(vehicle.status || '').toUpperCase();
+    if (vehicleStatus && vehicleStatus !== 'ACTIVE') {
+      return { field: 'vehicleId', message: 'Xe hiện không ở trạng thái ACTIVE. Vui lòng kiểm tra lại xe của bạn.' };
+    }
+
+    const ownerId = vehicle.userId ?? vehicle.ownerId ?? vehicle.driverId;
+    if (currentUser?.userId && ownerId && String(ownerId) !== String(currentUser.userId)) {
+      return { field: 'vehicleId', message: 'Bạn không có quyền đặt chỗ cho xe này.' };
+    }
+
+    if (!values.slotId) {
+      return { field: 'slotId', message: 'Vui lòng chọn vị trí đỗ xe.' };
+    }
+
+    const slot = availableSlots.find((item) => String(item.slotId) === String(values.slotId));
+    if (!slot || slot.available === false) {
+      return { field: 'slotId', message: 'Slot đã không còn trống. Vui lòng chọn vị trí khác.' };
+    }
+
+    if (getActiveReservation(reservations, vehicleId)) {
+      return { field: 'vehicleId', message: 'Xe này đang có một reservation đang hoạt động. Vui lòng hoàn tất hoặc hủy đặt chỗ hiện tại trước.' };
     }
     return null;
   };
 
   const handleVehicleChange = async (vehicleId) => {
     setSelectedVehicleId(vehicleId);
-    form.setFieldValue('slotId', null);
-    await loadSlots(form.getFieldValue('startTime'), form.getFieldValue('endTime'), vehicleId);
-  };
+    form.setFieldsValue({ slotId: undefined });
+    setAvailableSlots([]);
+    setActiveSubscription(null);
 
-  const handleTimeChange = async () => {
-    const st = form.getFieldValue('startTime');
-    const et = form.getFieldValue('endTime');
-    const currentSlot = form.getFieldValue('slotId');
-    const list = await loadSlots(st, et);
-    if (currentSlot && !list.some((s) => s.slotId === currentSlot)) {
-      form.setFieldValue('slotId', null);
-      message.info('Slot đang chọn không còn trống với khung giờ mới, vui lòng chọn lại.');
+    if (!vehicleId) {
+      return;
+    }
+
+    if (vehicle && String(vehicle.status || '').toUpperCase() !== 'ACTIVE') {
+      form.setFields([{ name: 'vehicleId', errors: ['Xe hiện không ở trạng thái ACTIVE. Vui lòng kiểm tra lại xe của bạn.'] }]);
+      message.warning('Xe hiện không ở trạng thái ACTIVE.');
+      return;
+    }
+
+    setSubscriptionLoading(true);
+    try {
+      const subscriptionResponse = await subscriptionService.getActiveSubscription(vehicleId);
+      const subscription = subscriptionResponse.data?.result || subscriptionResponse.data;
+      const subscriptionStatus = String(subscription?.status || '').toUpperCase();
+      const vehicleTypeMatches = [vehicle?.vehicleTypeId, vehicle?.vehicleTypeCode].filter(Boolean)
+        .some((value) => [subscription?.vehicleTypeId, subscription?.vehicleTypeCode, subscription?.plan?.vehicleTypeId, subscription?.plan?.vehicleTypeCode].filter(Boolean)
+          .some((subscriptionType) => String(subscriptionType) === String(value)));
+
+      if (!subscription || subscriptionStatus !== 'ACTIVE') {
+        form.setFields([{ name: 'vehicleId', errors: ['Xe này chưa có subscription ACTIVE.'] }]);
+        message.warning('Xe này chưa có subscription ACTIVE.');
+        return;
+      }
+      if (!vehicleTypeMatches) {
+        form.setFields([{ name: 'vehicleId', errors: ['Subscription không phù hợp với loại xe đã chọn.'] }]);
+        message.warning('Subscription không phù hợp với loại xe đã chọn.');
+        return;
+      }
+
+      setActiveSubscription(subscription);
+      const subscriptionVehicleTypeId = subscription.vehicleTypeId || subscription.plan?.vehicleTypeId;
+      const res = await slotService.searchAvailable(subscriptionVehicleTypeId ? { vehicleTypeId: subscriptionVehicleTypeId } : {});
+      const available = (res.data?.result || []).filter((slot) => slot.available && (!subscriptionVehicleTypeId || String(slot.vehicleTypeId || subscriptionVehicleTypeId) === String(subscriptionVehicleTypeId)));
+      setAvailableSlots(available);
+    } catch (err) {
+      setAvailableSlots([]);
+      console.error('Failed to load available slots:', err);
+      const code = err.response?.data?.code;
+      message.error(code === 'SUBSCRIPTION_NOT_ACTIVE' ? 'Xe này chưa có subscription ACTIVE.' : 'Không thể tải subscription hoặc slot trống. Vui lòng thử lại sau.');
+    } finally {
+      setSubscriptionLoading(false);
     }
   };
 
@@ -144,6 +187,7 @@ export default function ReservationsPage() {
         1031: 'Xe chưa có subscription active.',
         1061: 'Xe của bạn đang bị khóa hoặc chưa kích hoạt, không thể check-in.',
         1062: 'Chưa đến giờ hoặc đã quá giờ check-in của reservation này.',
+        RESERVATION_NOT_IN_TIME_WINDOW: 'Reservation chưa nằm trong thời hạn được phép check-in.',
         1032: 'Reservation không hợp lệ.',
       };
       message.error(msgs[code] || err.response?.data?.message || 'Không thể tạo mã QR');
@@ -166,33 +210,50 @@ export default function ReservationsPage() {
       message.error(validation.message);
       return;
     }
+
+    const vehicleId = values.vehicleId ?? selectedVehicleId;
+    const payload = {
+      slotId: Number(values.slotId),
+    };
+
     setSubmitting(true);
     try {
-      const vtId = resolveTypeId(selectedVehicleId);
-      const checkParams = {};
-      if (vtId) checkParams.vehicleTypeId = vtId;
-      if (values.startTime) checkParams.startTime = values.startTime.format('YYYY-MM-DDTHH:mm:ss');
-      if (values.endTime) checkParams.endTime = values.endTime.format('YYYY-MM-DDTHH:mm:ss');
-      const checkRes = await slotService.searchAvailable(checkParams);
-      const stillFree = (checkRes.data?.result || []).some(
-        (s) => s.slotId === values.slotId && s.available
-      );
-      if (!stillFree) {
-        message.error('Slot này vừa có người đặt hoặc không còn trống. Danh sách đã được cập nhật, vui lòng chọn slot khác!');
-        form.setFieldValue('slotId', null);
-        await loadSlots(values.startTime, values.endTime);
+      const res = await reservationService.createReservation(vehicleId, payload);
+      const responseCode = res?.data?.code;
+      const success = res?.data?.success === true;
+
+      if (responseCode === 1050) {
+        message.warning('Phiên đậu xe không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại thông tin xe / phiên đặt chỗ.');
+        setModalOpen(false);
+        form.resetFields();
+        setSelectedVehicleId(null);
+        setAvailableSlots([]);
         return;
       }
-      const data = {
-        slotId: values.slotId,
-        startTime: values.startTime ? values.startTime.format('YYYY-MM-DDTHH:mm:ss') : null,
-        endTime: values.endTime ? values.endTime.format('YYYY-MM-DDTHH:mm:ss') : null,
-      };
-      const res = await reservationService.createReservation(selectedVehicleId, data);
-      message.success(res.data.message || 'Đặt chỗ thành công');
-      setModalOpen(false);
-      form.resetFields();
-      fetchReservations();
+
+      if (responseCode === 1066) {
+        form.setFields([{ name: 'slotId', errors: ['Bạn chưa upload đủ ảnh xác nhận ra khỏi bãi.'] }]);
+        message.error('Bạn chưa upload đủ ảnh xác nhận ra khỏi bãi.');
+        return;
+      }
+
+      if (responseCode === 'SUBSCRIPTION_NOT_ACTIVE') {
+        form.setFields([{ name: 'vehicleId', errors: ['Xe này chưa có subscription ACTIVE phù hợp.'] }]);
+        message.error('Xe này chưa có subscription ACTIVE phù hợp.');
+        return;
+      }
+
+      if (success) {
+        message.success(res.data?.message || 'Đặt chỗ thành công');
+        setModalOpen(false);
+        form.resetFields();
+        setSelectedVehicleId(null);
+        setAvailableSlots([]);
+        await fetchReservations();
+        return;
+      }
+
+      message.error('Hệ thống đang gặp lỗi dữ liệu, vui lòng thử lại sau hoặc liên hệ admin.');
     } catch (err) {
       const code = err.response?.data?.code;
       const msgs = {
@@ -266,6 +327,7 @@ export default function ReservationsPage() {
           onClick={() => {
             form.resetFields();
             setSelectedVehicleId(null);
+            setActiveSubscription(null);
             setAvailableSlots([]);
             setModalOpen(true);
             loadSlots();
@@ -293,50 +355,33 @@ export default function ReservationsPage() {
               {vehicles.map((v) => <Select.Option key={v.vehicleId} value={v.vehicleId}>{v.plateNumber} - {v.vehicleTypeName || 'N/A'}</Select.Option>)}
             </Select>
           </Form.Item>
+          {selectedVehicleId && (
+            <Spin spinning={subscriptionLoading}>
+              {activeSubscription ? (
+                <Card size="small" title="Subscription đang áp dụng" style={{ marginBottom: 16, background: '#f6ffed' }}>
+                  <Space direction="vertical" size={4}>
+                    <span><strong>Tên gói:</strong> {activeSubscription.planName || activeSubscription.plan?.name || activeSubscription.name || '-'}</span>
+                    <span><strong>Loại vehicle:</strong> {activeSubscription.vehicleTypeName || activeSubscription.plan?.vehicleTypeName || activeSubscription.vehicleTypeCode || activeSubscription.plan?.vehicleTypeCode || '-'}</span>
+                    <span><strong>Ngày bắt đầu:</strong> {activeSubscription.startDate ? dayjs(activeSubscription.startDate).format('DD/MM/YYYY') : '-'}</span>
+                    <span><strong>Ngày kết thúc:</strong> {activeSubscription.endDate ? dayjs(activeSubscription.endDate).format('DD/MM/YYYY') : '-'}</span>
+                  </Space>
+                </Card>
+              ) : (
+                <Alert type="warning" showIcon message="Xe chưa có subscription ACTIVE phù hợp" style={{ marginBottom: 16 }} />
+              )}
+            </Spin>
+          )}
           <Form.Item name="slotId" label="Chọn slot" rules={[{ required: true, message: 'Chọn slot!' }]}>
-            <Select
-              placeholder={selectedVehicleId ? 'Chọn slot trống' : 'Chọn xe trước'}
-              disabled={!selectedVehicleId}
-              notFoundContent="Không có slot trống phù hợp với xe của bạn"
-              onDropdownVisibleChange={(open) => {
-                if (open) loadSlots(form.getFieldValue('startTime'), form.getFieldValue('endTime'));
-              }}
-            >
+            <Select disabled={!activeSubscription || subscriptionLoading} placeholder={selectedVehicleId ? 'Chọn slot trống' : 'Chọn xe trước'}>
               {availableSlots.map((s) => <Select.Option key={s.slotId} value={s.slotId}>{s.slotCode} - {s.floorCode} ({s.zoneCode}) [{s.buildingName}]</Select.Option>)}
             </Select>
           </Form.Item>
-          <Form.Item name="startTime" label="Thời gian bắt đầu" rules={[
-            { required: true, message: 'Chọn thời gian!' },
-            () => ({
-              validator(_, value) {
-                if (!value || !value.isBefore(dayjs())) return Promise.resolve();
-                return Promise.reject(new Error('Không được chọn thời gian trong quá khứ!'));
-              },
-            }),
-          ]}>
-            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} disabledDate={disabledPastDate} disabledTime={pastTimeDisabled} onChange={handleTimeChange} />
-          </Form.Item>
-          <Form.Item name="endTime" label="Thời gian kết thúc" rules={[
-            { required: true, message: 'Chọn thời gian!' },
-            ({ getFieldValue }) => ({
-              validator(_, value) {
-                if (!value) return Promise.resolve();
-                const st = getFieldValue('startTime');
-                if (value.isBefore(dayjs())) return Promise.reject(new Error('Không được chọn thời gian trong quá khứ!'));
-                if (st && !value.isAfter(st)) return Promise.reject(new Error('Phải sau thời gian bắt đầu!'));
-                return Promise.resolve();
-              },
-            }),
-          ]}>
-            <DatePicker
-              showTime
-              format="YYYY-MM-DD HH:mm"
-              style={{ width: '100%' }}
-              disabledDate={(d) => d && d.isBefore((form.getFieldValue('startTime') || dayjs()).startOf('day'))}
-              disabledTime={pastTimeDisabled}
-              onChange={handleTimeChange}
-            />
-          </Form.Item>
+          <Alert
+            type="info"
+            showIcon
+            message="Thời hạn reservation lấy tự động từ subscription"
+            description="Backend sẽ sử dụng ngày bắt đầu lúc 00:00 và đầu ngày kế tiếp sau ngày kết thúc của subscription."
+          />
         </Form>
       </Modal>
 
