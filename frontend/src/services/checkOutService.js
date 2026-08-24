@@ -27,26 +27,33 @@ const checkOutService = {
 const ERROR_TEXT = {
   1050: 'Không tìm thấy vé này. Kiểm tra lại mã.',
   1055: 'Chưa có biểu giá cho loại xe này. Báo quản trị viên.',
-  1065: 'Vé này đã dùng rồi — lượt gửi đã đóng.',
+  1070: 'Vé này đã dùng rồi — lượt gửi đã đóng.',
   1066: 'Còn thiếu ảnh lúc ra.',
   1067: 'Lượt gửi này đã thu tiền rồi.',
-  QR_TOKEN_NOT_EXISTED: 'Mã QR không tồn tại.',
-  QR_TOKEN_EXPIRED: 'Mã QR đã hết hạn.',
-  QR_TOKEN_ALREADY_USED: 'Mã QR này đã được sử dụng.',
-  PLATE_MISMATCH: 'Biển số xe không khớp với thông tin check-in.',
-  SLOT_NOT_AVAILABLE: 'Slot hiện không còn sẵn sàng.',
-  VEHICLE_NOT_ACTIVE: 'Vehicle chưa ACTIVE.',
-  SUBSCRIPTION_NOT_ACTIVE: 'Subscription của vehicle chưa ACTIVE.',
-  RESERVATION_ACTIVE_EXISTS: 'Vehicle đang có lượt gửi hoặc reservation đang hoạt động.',
+  1051: 'Mã QR không tồn tại.',
+  1052: 'Mã QR đã hết hạn.',
+  1053: 'Mã QR này đã được sử dụng.',
+  1054: 'Biển số xe không khớp với thông tin check-in.',
+  1061: 'Xe chưa ở trạng thái ACTIVE.',
+  1062: 'Đặt chỗ chưa tới giờ check-in.',
+  1031: 'Gói của xe chưa ở trạng thái ACTIVE.',
+  1033: 'Xe đang có lượt gửi hoặc đặt chỗ khác.',
+  1043: 'Ô đỗ này hiện không còn trống.',
 };
 
 export function errorText(err) {
   const body = err?.response?.data;
-  if (err?.response?.status === 400 || err?.response?.status === 500) {
-    console.error('Check-out backend/schema error:', err);
-    return 'Hệ thống đang gặp lỗi dữ liệu, vui lòng thử lại sau hoặc liên hệ admin.';
+
+  // Tra ma TRUOC: ma nao minh biet thi noi ro cho staff.
+  if (ERROR_TEXT[body?.code]) return ERROR_TEXT[body.code];
+
+  // Khong nhan ra ma, lai la 500 -> loi ngoai du kien, dung noi ky thuat voi staff.
+  if (err?.response?.status === 500) {
+    console.error('Check-out: loi ngoai du kien', err);
+    return 'Hệ thống đang gặp lỗi, thử lại hoặc báo quản trị viên.';
   }
-  return ERROR_TEXT[body?.code] || body?.message || 'Không gọi được máy chủ';
+
+  return body?.message || 'Không gọi được máy chủ';
 }
 
 export function errorCode(err) {
