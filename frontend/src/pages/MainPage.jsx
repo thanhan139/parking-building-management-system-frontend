@@ -6,6 +6,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { resolveImageUrl } from '../utils/imageUrl';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import VehiclesPage from './VehiclesPage';
@@ -117,7 +118,7 @@ export default function MainPage() {
         </div>
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={['click']}>
           <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <Avatar size={32} src={user?.avatarUrl} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #1677ff, #69b1ff)' }} />
+            <Avatar size={32} src={resolveImageUrl(user?.avatarUrl)} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #1677ff, #69b1ff)' }} />
             <span style={{ fontWeight: 500, fontSize: 14 }}>{user?.fullName || 'User'}</span>
           </div>
         </Dropdown>

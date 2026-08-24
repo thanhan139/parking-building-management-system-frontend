@@ -3,6 +3,7 @@ import { Card, Form, Input, Button, Avatar, Upload, Row, Col, Typography, Divide
 import { UserOutlined, UploadOutlined, LockOutlined, SaveOutlined } from '@ant-design/icons';
 import userService from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 const { Title, Text } = Typography;
 
@@ -13,9 +14,15 @@ export default function ProfilePage() {
   const beforeUpload = (file) => {
     const isImage = file.type.startsWith('image/');
     const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isImage) message.error('Chỉ được tải lên file ảnh!');
-    if (!isLt2M) message.error('Ảnh phải nhỏ hơn 2MB!');
-    return isImage && isLt2M ? false : Upload.LIST_IGNORE;
+    if (!isImage) {
+      message.error('Chỉ được tải lên file ảnh!');
+      return Upload.LIST_IGNORE;
+    }
+    if (!isLt2M) {
+      message.error('Ảnh phải nhỏ hơn 2MB!');
+      return Upload.LIST_IGNORE;
+    }
+    return true;
   };
 
   const [profileForm] = Form.useForm();
@@ -42,8 +49,13 @@ export default function ProfilePage() {
           email: data.email,
           phoneNumber: data.phoneNumber,
         });
-        setAvatarUrl(data.avatarUrl || null);
-        updateUser({ fullName: data.fullName, email: data.email, phoneNumber: data.phoneNumber, avatarUrl: data.avatarUrl });
+        setAvatarUrl(resolveImageUrl(data.avatarUrl, { bust: true }));
+        updateUser({
+          fullName: data.fullName,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          avatarUrl: data.avatarUrl,
+        });
       }
     } catch (err) {
       message.error(err.response?.data?.message || 'Không thể tải thông tin profile');
@@ -73,9 +85,15 @@ export default function ProfilePage() {
       setUploadingAvatar(true);
       const res = await userService.uploadAvatar(file);
       const data = res.data?.result;
-      if (data) {
-        setAvatarUrl(data.avatarUrl || null);
-        updateUser({ avatarUrl: data.avatarUrl });
+      const newUrl =
+        typeof data === 'string' ? data : data?.avatarUrl || data?.avatar || null;
+      if (newUrl) {
+        const busted = resolveImageUrl(newUrl, { bust: true });
+        setAvatarUrl(busted);
+        updateUser({ avatarUrl: newUrl });
+        message.success('Cập nhật ảnh đại diện thành công!');
+      } else {
+        await fetchProfile();
         message.success('Cập nhật ảnh đại diện thành công!');
       }
     } catch (err) {
