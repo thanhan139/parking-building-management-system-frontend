@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, Typography, Divider, App } from 'antd';
 import { LockOutlined, PhoneOutlined, RightOutlined } from '@ant-design/icons';
-import { useAuth, roleFromToken } from '../contexts/AuthContext';
+import { useAuth, roleFromToken, homeForRole } from '../contexts/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -12,13 +12,6 @@ const DEMO_ACCOUNTS = [
   { role: 'STAFF', phone: 'staff', hint: 'xe vào · xe ra · thu tiền' },
 ];
 const DEMO_PASSWORD = 'admin';
-
-function homeForRole() {
-  const role = roleFromToken();
-  if (role === 'STAFF') return '/staff/check-in';
-  if (role === 'ADMIN') return '/admin/pricing';
-  return '/manager/facility';
-}
 
 export default function LoginPage() {
   const { message } = App.useApp();
@@ -31,7 +24,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(phone, DEMO_PASSWORD);
-      navigate(homeForRole());
+      navigate(homeForRole(roleFromToken()));
     } catch (err) {
       message.error(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {
@@ -44,7 +37,7 @@ export default function LoginPage() {
     try {
       await login(values.phoneNumber, values.password);
       message.success('Đăng nhập thành công!');
-      navigate(internal ? homeForRole() : '/');
+      navigate(internal ? homeForRole(roleFromToken()) : '/');
     } catch (err) {
       message.error(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {

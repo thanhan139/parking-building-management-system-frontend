@@ -32,19 +32,12 @@ const MENU_STAFF = [
   { key: '/staff/check-out', icon: <ExportOutlined />, label: 'Xe ra' },
 ];
 
-function StaffRoute({ children }) {
-  const { user, isStaff } = useAuth();
+// Guard chung: chi cho phep cac role trong "allow" vao khu vuc nay.
+function RoleGuard({ allow, children }) {
+  const { user, role } = useAuth();
 
   if (!user) return <Navigate to="/internal/login" replace />;
-  if (!isStaff) return <Navigate to="/" replace />;
-  return children;
-}
-
-function AdminRoute({ children }) {
-  const { user, isAdmin } = useAuth();
-
-  if (!user) return <Navigate to="/internal/login" replace />;
-  if (!isAdmin) return <Navigate to="/" replace />;
+  if (!allow.includes(role)) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -81,8 +74,9 @@ export default function App() {
 
               <Route
                 path="/admin"
-                element={<AdminRoute><InternalLayout title="Quản trị hệ thống" color="#b45309" navItems={MENU_ADMIN} /></AdminRoute>}
+                element={<RoleGuard allow={['ADMIN']}><InternalLayout title="Quản trị hệ thống" color="#b45309" navItems={MENU_ADMIN} /></RoleGuard>}
               >
+                <Route index element={<Navigate to="plans" replace />} />
                 <Route path="plans" element={<PlanPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="payments" element={<PaymentPage />} />
@@ -90,15 +84,17 @@ export default function App() {
 
               <Route
                 path="/manager"
-                element={<StaffRoute><InternalLayout title="Quản lý bãi" color="#4f46e5" navItems={MENU_MANAGER} /></StaffRoute>}
+                element={<RoleGuard allow={['MANAGER', 'ADMIN']}><InternalLayout title="Quản lý bãi" color="#4f46e5" navItems={MENU_MANAGER} /></RoleGuard>}
               >
+                <Route index element={<Navigate to="facility" replace />} />
                 <Route path="facility" element={<FacilityPage />} />
               </Route>
 
               <Route
                 path="/staff"
-                element={<StaffRoute><InternalLayout title="Nhân viên cổng" color="#2e7d4f" navItems={MENU_STAFF} /></StaffRoute>}
+                element={<RoleGuard allow={['STAFF', 'MANAGER', 'ADMIN']}><InternalLayout title="Nhân viên cổng" color="#2e7d4f" navItems={MENU_STAFF} /></RoleGuard>}
               >
+                <Route index element={<Navigate to="check-in" replace />} />
                 <Route path="check-in" element={<GuestCheckInPage />} />
                 <Route path="member-check-in" element={<MemberCheckInPage />} />
                 <Route path="check-out" element={<CheckOutPage />} />
