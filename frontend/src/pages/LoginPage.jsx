@@ -1,22 +1,50 @@
 import { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Divider } from 'antd';
+import { Form, Input, Button, Card, Typography, Divider, App } from 'antd';
 import { LockOutlined, PhoneOutlined, RightOutlined } from '@ant-design/icons';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useAuth, roleFromToken } from '../contexts/AuthContext';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
+const DEMO_ACCOUNTS = [
+  { role: 'ADMIN', phone: 'admin', hint: 'biểu giá · giao dịch · phân quyền' },
+  { role: 'MANAGER', phone: 'manager', hint: 'hạ tầng bãi · khiếu nại' },
+  { role: 'STAFF', phone: 'staff', hint: 'xe vào · xe ra · thu tiền' },
+];
+const DEMO_PASSWORD = 'admin';
+
+function homeForRole() {
+  const role = roleFromToken();
+  if (role === 'STAFF') return '/staff/check-in';
+  if (role === 'ADMIN') return '/admin/pricing';
+  return '/manager/facility';
+}
+
 export default function LoginPage() {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const internal = useLocation().pathname.startsWith('/internal');
+
+  const quickLogin = async (phone) => {
+    setLoading(true);
+    try {
+      await login(phone, DEMO_PASSWORD);
+      navigate(homeForRole());
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Đăng nhập thất bại');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
       await login(values.phoneNumber, values.password);
       message.success('Đăng nhập thành công!');
-      navigate('/');
+      navigate(internal ? homeForRole() : '/');
     } catch (err) {
       message.error(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {
@@ -79,8 +107,12 @@ export default function LoginPage() {
           }}>
             🅿️
           </div>
-          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>Parking Management</Title>
-          <Text type="secondary">Đăng nhập để quản lý bãi đỗ xe của bạn</Text>
+          <Title level={3} style={{ margin: 0, fontWeight: 700 }}>
+            {internal ? 'Cổng nội bộ' : 'Parking Management'}
+          </Title>
+          <Text type="secondary">
+            {internal ? 'Dành cho nhân viên, quản lý và quản trị' : 'Đăng nhập để gửi xe và quản lý xe của bạn'}
+          </Text>
         </div>
         <Form layout="vertical" onFinish={onFinish} autoComplete="off" size="large">
           <Form.Item name="phoneNumber" rules={[{ required: true, message: 'Vui lòng nhập số điện thoại!' }]}>
@@ -110,12 +142,40 @@ export default function LoginPage() {
             </Button>
           </Form.Item>
         </Form>
-        <Divider plain><Text type="secondary" style={{ fontSize: 13 }}>Chưa có tài khoản?</Text></Divider>
-        <Link to="/register">
-          <Button block size="large" style={{ borderRadius: 10, height: 44, fontWeight: 500 }}>
-            Đăng ký tài khoản mới
-          </Button>
-        </Link>
+        {internal ? (
+          <>
+            <Divider plain><Text type="secondary" style={{ fontSize: 13 }}>Tài khoản demo</Text></Divider>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {DEMO_ACCOUNTS.map((tk) => (
+                <Button
+                  key={tk.role}
+                  block
+                  onClick={() => quickLogin(tk.phone)}
+                  disabled={loading}
+                  style={{ borderRadius: 10, height: 46, textAlign: 'left' }}
+                >
+                  <span style={{ fontWeight: 600 }}>{tk.role}</span>
+                  <span style={{ color: '#8c8c8c', fontSize: 12, marginLeft: 8 }}>{tk.hint}</span>
+                </Button>
+              ))}
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <Link to="/login"><Text type="secondary" style={{ fontSize: 13 }}>Bạn là khách gửi xe?</Text></Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <Divider plain><Text type="secondary" style={{ fontSize: 13 }}>Chưa có tài khoản?</Text></Divider>
+            <Link to="/register">
+              <Button block size="large" style={{ borderRadius: 10, height: 44, fontWeight: 500 }}>
+                Đăng ký tài khoản mới
+              </Button>
+            </Link>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <Link to="/internal/login"><Text type="secondary" style={{ fontSize: 13 }}>Cổng nội bộ</Text></Link>
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );

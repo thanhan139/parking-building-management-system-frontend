@@ -16,7 +16,6 @@ const checkingService = {
     api.post(
       '/api/guest-checking/check-in',
       buildCheckInForm({ plateNumber, vehicleCategory, gateCode }, images),
-      { headers: { 'Content-Type': 'multipart/form-data' } }
     ),
 
   // images: { front, back, left, right, driverFace } — File objects
@@ -24,7 +23,6 @@ const checkingService = {
     api.post(
       `/api/member-checking/check-in?entryGate=${encodeURIComponent(entryGate)}`,
       buildCheckInForm({ qrToken, currentPlateNumber }, images),
-      { headers: { 'Content-Type': 'multipart/form-data' } }
     ),
 };
 

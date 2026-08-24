@@ -24,7 +24,10 @@ const imageProps = {
   },
 };
 
-const getFile = (value) => value?.fileList?.[0]?.originFileObj;
+// getValueFromEvent tra ve chinh mang fileList, nen value la mang.
+// Van do phong truong hop antd doi ve dang { fileList: [...] }.
+const getFile = (value) =>
+  (Array.isArray(value) ? value[0] : value?.fileList?.[0])?.originFileObj;
 
 export default function GuestCheckInPage() {
   const [form] = Form.useForm();
