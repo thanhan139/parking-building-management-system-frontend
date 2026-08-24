@@ -4,15 +4,30 @@ export const CATEGORY = { CAR: 'Ô tô', MOTORCYCLE: 'Xe máy' };
 
 export const CUSTOMER = { GUEST: 'Khách vãng lai', MEMBER: 'Thành viên' };
 
-export const COMBOS = [
-  { vehicleCategory: 'CAR', customerType: 'GUEST' },
-  { vehicleCategory: 'CAR', customerType: 'MEMBER' },
-  { vehicleCategory: 'MOTORCYCLE', customerType: 'GUEST' },
-  { vehicleCategory: 'MOTORCYCLE', customerType: 'MEMBER' },
-];
+// Backend quan ly gia theo vehicle_type cu the, khong theo category.
+export const TYPE_LABELS = {
+  X_MOTO: 'Xe máy xăng',
+  E_MOTO: 'Xe máy điện',
+  CAR_PETROL: 'Ô tô xăng',
+  CAR_ELECTRIC: 'Ô tô điện',
+  CAR_HYBRID: 'Ô tô hybrid',
+};
+
+const CODE_CATEGORY = {
+  X_MOTO: 'MOTORCYCLE',
+  E_MOTO: 'MOTORCYCLE',
+  CAR_PETROL: 'CAR',
+  CAR_ELECTRIC: 'CAR',
+  CAR_HYBRID: 'CAR',
+};
+
+export function ruleCategory(rule) {
+  return rule.vehicleCategory || CODE_CATEGORY[rule.vehicleTypeCode];
+}
 
 export function comboName(rule) {
-  return `${CATEGORY[rule.vehicleCategory]} · ${CUSTOMER[rule.customerType]}`;
+  const cat = ruleCategory(rule);
+  return `${TYPE_LABELS[rule.vehicleTypeCode] || CATEGORY[cat] || 'Không rõ loại'} · ${CUSTOMER[rule.customerType] || '—'}`;
 }
 
 export function ruleState(rule) {
