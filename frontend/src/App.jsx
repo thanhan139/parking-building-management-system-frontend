@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
-import { ApartmentOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, CreditCardOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
@@ -9,11 +9,15 @@ import RegisterPage from './pages/RegisterPage';
 import InternalLayout from './pages/InternalLayout';
 import FacilityPage from './pages/manager/FacilityPage';
 import GuestCheckInPage from './pages/GuestCheckInPage';
+import MemberCheckInPage from './pages/MemberCheckInPage';
 import CheckOutPage from './pages/staff/CheckOutPage';
 import PricingPage from './pages/admin/PricingPage';
 import PaymentPage from './pages/admin/PaymentPage';
+import PlanPage from './pages/admin/PlanPage';
+import PaymentResultPage from './pages/PaymentResultPage';
 
 const MENU_ADMIN = [
+  { key: '/admin/plans', icon: <CreditCardOutlined />, label: 'Gói đăng ký' },
   { key: '/admin/pricing', icon: <DollarOutlined />, label: 'Biểu giá' },
   { key: '/admin/payments', icon: <ProfileOutlined />, label: 'Giao dịch' },
 ];
@@ -23,7 +27,8 @@ const MENU_MANAGER = [
 ];
 
 const MENU_STAFF = [
-  { key: '/staff/check-in', icon: <ImportOutlined />, label: 'Xe vào' },
+  { key: '/staff/check-in', icon: <ImportOutlined />, label: 'Check-in khách' },
+  { key: '/staff/member-check-in', icon: <ImportOutlined />, label: 'Check-in thành viên' },
   { key: '/staff/check-out', icon: <ExportOutlined />, label: 'Xe ra' },
 ];
 
@@ -69,7 +74,7 @@ export default function App() {
               <Route path="/reservations" element={<MainPage />} />
               <Route path="/subscriptions" element={<MainPage />} />
               <Route path="/payments" element={<MainPage />} />
-
+              <Route path="/profile" element={<MainPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/internal/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -78,6 +83,7 @@ export default function App() {
                 path="/admin"
                 element={<AdminRoute><InternalLayout title="Quản trị hệ thống" color="#b45309" navItems={MENU_ADMIN} /></AdminRoute>}
               >
+                <Route path="plans" element={<PlanPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="payments" element={<PaymentPage />} />
               </Route>
@@ -94,10 +100,13 @@ export default function App() {
                 element={<StaffRoute><InternalLayout title="Nhân viên cổng" color="#2e7d4f" navItems={MENU_STAFF} /></StaffRoute>}
               >
                 <Route path="check-in" element={<GuestCheckInPage />} />
+                <Route path="member-check-in" element={<MemberCheckInPage />} />
                 <Route path="check-out" element={<CheckOutPage />} />
               </Route>
 
               <Route path="/staff/guest-check-in" element={<Navigate to="/staff/check-in" replace />} />
+              <Route path="/staff/membership-check-in" element={<Navigate to="/staff/member-check-in" replace />} />
+              <Route path="/payment-result" element={<PaymentResultPage />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </AntApp>

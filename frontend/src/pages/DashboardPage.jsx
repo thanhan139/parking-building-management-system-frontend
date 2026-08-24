@@ -53,7 +53,7 @@ export default function DashboardPage() {
           vehicleService.getMyVehicles().catch(() => ({ data: { result: [] } })),
           reservationService.getMyReservations().catch(() => ({ data: { result: [] } })),
           paymentService.getPaymentHistory().catch(() => ({ data: { result: [] } })),
-          slotService.getSlots().catch(() => ({ data: { result: [] } })),
+          slotService.searchAvailable({}).catch(() => ({ data: { result: [] } })),
         ]);
 
         const v = vRes.data?.result || [];
@@ -64,7 +64,7 @@ export default function DashboardPage() {
         setVehicles(v);
         setReservations(r);
         setPayments(p);
-        setAvailableSlots(slots.filter((s) => s.status === 'AVAILABLE').length);
+        setAvailableSlots(slots.filter((s) => s.available).length);
 
         const activeSubs = [];
         for (const vehicle of v) {

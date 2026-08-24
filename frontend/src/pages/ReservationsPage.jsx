@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, message, Popconfirm, Descriptions, Input } from 'antd';
+import { Table, Button, Modal, Form, Select, DatePicker, Tag, Space, Typography, Popconfirm, Descriptions, App, Input } from 'antd';
 import { PlusOutlined, CloseCircleOutlined, EyeOutlined, QrcodeOutlined, ReloadOutlined, CopyOutlined } from '@ant-design/icons';
 import reservationService from '../services/reservationService';
 import vehicleService from '../services/vehicleService';
@@ -13,6 +13,7 @@ const statusColors = {
 };
 
 export default function ReservationsPage() {
+  const { message } = App.useApp();
   const [reservations, setReservations] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -81,6 +82,7 @@ export default function ReservationsPage() {
       const code = err.response?.data?.code;
       const msgs = {
         1031: 'Xe chưa có subscription active.',
+        1061: 'Xe của bạn đang bị khóa hoặc chưa kích hoạt, không thể check-in.',
         1062: 'Chưa đến giờ hoặc đã quá giờ check-in của reservation này.',
         1032: 'Reservation không hợp lệ.',
       };

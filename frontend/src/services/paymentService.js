@@ -5,6 +5,7 @@ const paymentService = {
   getPaymentHistory: () => api.get('/api/v1/payments/history'),
 
   getGatePayments: () => api.get('/api/check-out/payments'),
+  verifyPayment: (params) => api.get('/api/v1/payments/verify', { params }),
 };
 
 export function errorText(err) {

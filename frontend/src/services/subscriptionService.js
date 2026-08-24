@@ -10,6 +10,9 @@ const subscriptionService = {
   getPlans: () => api.get('/api/subscription-plans'),
   getPlansByVehicleType: (vehicleTypeId) =>
     api.get(`/api/subscription-plans/vehicle-type/${vehicleTypeId}`),
+  createPlan: (body) => api.post('/api/subscription-plans', body),
+  updatePlan: (planId, body) => api.put(`/api/subscription-plans/${planId}`, body),
+  deletePlan: (planId) => api.delete(`/api/subscription-plans/${planId}`),
 };
 
 export default subscriptionService;
