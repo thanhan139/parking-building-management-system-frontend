@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Form, Input, Modal, Select, Space, Table, Tag, Typography, Upload, App } from 'antd';
-import { PlusOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
+import { Alert, Button, Form, Input, Modal, Select, Space, Table, Tag, Typography, Upload, App, Descriptions, Popconfirm, Image } from 'antd';
+import { DeleteOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons';
 import complaintService from '../services/complaintService';
 import reservationService from '../services/reservationService';
 
@@ -38,6 +38,9 @@ export default function ComplaintsPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [form] = Form.useForm();
 
   const loadData = async () => {
@@ -81,12 +84,52 @@ export default function ComplaintsPage() {
     }
   };
 
+  const openDetail = async (complaintId) => {
+    setDetailLoading(true);
+    try {
+      const response = await complaintService.getMineById(complaintId);
+      setDetail(response.data?.result || response.data);
+    } catch (error) {
+      console.error('Failed to load complaint detail:', error);
+      message.error('Không thể tải chi tiết khiếu nại.');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const removeComplaint = async (complaintId) => {
+    setDeletingId(complaintId);
+    try {
+      await complaintService.remove(complaintId);
+      message.success('Đã xoá khiếu nại.');
+      setDetail(null);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to delete complaint:', error);
+      message.error(error.response?.data?.message || 'Không thể xoá khiếu nại. Chỉ complaint PENDING mới được xoá.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const columns = [
     { title: 'Tiêu đề', dataIndex: 'title', key: 'title', render: (value) => <Text strong>{value}</Text> },
     { title: 'Phiên gửi xe', dataIndex: 'sessionId', key: 'sessionId', render: (value) => value || 'Không liên kết' },
     { title: 'Ngày gửi', dataIndex: 'createdAt', key: 'createdAt', render: (value) => value ? new Date(value).toLocaleString('vi-VN') : '-' },
     { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (value) => <Tag color={statusColors[value]}>{statusLabels[value] || value}</Tag> },
     { title: 'Nội dung', dataIndex: 'description', key: 'description', ellipsis: true },
+    {
+      title: 'Thao tác', key: 'actions', render: (_, record) => (
+        <Space>
+          <Button type="link" icon={<EyeOutlined />} loading={detailLoading} onClick={() => openDetail(getId(record))}>Xem</Button>
+          {record.status === 'PENDING' && (
+            <Popconfirm title="Xoá complaint này?" onConfirm={() => removeComplaint(getId(record))} okText="Xoá" cancelText="Huỷ">
+              <Button type="link" danger icon={<DeleteOutlined />} loading={deletingId === getId(record)}>Xoá</Button>
+            </Popconfirm>
+          )}
+        </Space>
+      ),
+    },
   ];
 
   return (
@@ -100,6 +143,23 @@ export default function ComplaintsPage() {
       </div>
       <Alert type="info" showIcon message="Bạn có thể liên kết khiếu nại với một phiên đã hoàn tất hoặc gửi khiếu nại không liên kết." style={{ marginBottom: 16 }} />
       <Table rowKey={getId} columns={columns} dataSource={complaints} loading={loading} pagination={{ pageSize: 8 }} />
+
+      <Modal title="Chi tiết khiếu nại" open={!!detail} onCancel={() => setDetail(null)} footer={null} width={680}>
+        {detail && (
+          <Descriptions bordered column={1} size="small">
+            <Descriptions.Item label="Tiêu đề">{detail.title}</Descriptions.Item>
+            <Descriptions.Item label="Nội dung">{detail.description}</Descriptions.Item>
+            <Descriptions.Item label="Phiên gửi xe">{detail.sessionId || 'Không liên kết'}</Descriptions.Item>
+            <Descriptions.Item label="Trạng thái"><Tag color={statusColors[detail.status]}>{statusLabels[detail.status] || detail.status}</Tag></Descriptions.Item>
+            <Descriptions.Item label="Ngày gửi">{detail.createdAt ? new Date(detail.createdAt).toLocaleString('vi-VN') : '-'}</Descriptions.Item>
+            <Descriptions.Item label="Ảnh minh chứng">
+              <Image.PreviewGroup>
+                <Space wrap>{(detail.imageUrls || []).map((url) => <Image key={url} width={96} height={72} style={{ objectFit: 'cover' }} src={url} />)}</Space>
+              </Image.PreviewGroup>
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Modal>
 
       <Modal title="Tạo khiếu nại" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={() => form.submit()} confirmLoading={submitting} okText="Gửi khiếu nại" cancelText="Hủy" width={620}>
         <Form form={form} layout="vertical" onFinish={submit}>
