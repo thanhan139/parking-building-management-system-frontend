@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
-import { ApartmentOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, CreditCardOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
@@ -12,9 +12,11 @@ import GuestCheckInPage from './pages/GuestCheckInPage';
 import CheckOutPage from './pages/staff/CheckOutPage';
 import PricingPage from './pages/admin/PricingPage';
 import PaymentPage from './pages/admin/PaymentPage';
+import PlanPage from './pages/admin/PlanPage';
 import PaymentResultPage from './pages/PaymentResultPage';
 
 const MENU_ADMIN = [
+  { key: '/admin/plans', icon: <CreditCardOutlined />, label: 'Gói đăng ký' },
   { key: '/admin/pricing', icon: <DollarOutlined />, label: 'Biểu giá' },
   { key: '/admin/payments', icon: <ProfileOutlined />, label: 'Giao dịch' },
 ];
@@ -79,6 +81,7 @@ export default function App() {
                 path="/admin"
                 element={<AdminRoute><InternalLayout title="Quản trị hệ thống" color="#b45309" navItems={MENU_ADMIN} /></AdminRoute>}
               >
+                <Route path="plans" element={<PlanPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="payments" element={<PaymentPage />} />
               </Route>
