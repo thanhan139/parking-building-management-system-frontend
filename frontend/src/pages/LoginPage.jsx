@@ -6,31 +6,12 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 
-const DEMO_ACCOUNTS = [
-  { role: 'ADMIN', phone: 'admin', hint: 'biểu giá · giao dịch · phân quyền' },
-  { role: 'MANAGER', phone: 'manager', hint: 'hạ tầng bãi · khiếu nại' },
-  { role: 'STAFF', phone: 'staff', hint: 'xe vào · xe ra · thu tiền' },
-];
-const DEMO_PASSWORD = 'admin';
-
 export default function LoginPage() {
   const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const internal = useLocation().pathname.startsWith('/internal');
-
-  const quickLogin = async (phone) => {
-    setLoading(true);
-    try {
-      await login(phone, DEMO_PASSWORD);
-      navigate(homeForRole(roleFromToken()));
-    } catch (err) {
-      message.error(err.response?.data?.message || 'Đăng nhập thất bại');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const onFinish = async (values) => {
     setLoading(true);
@@ -136,26 +117,9 @@ export default function LoginPage() {
           </Form.Item>
         </Form>
         {internal ? (
-          <>
-            <Divider plain><Text type="secondary" style={{ fontSize: 13 }}>Tài khoản demo</Text></Divider>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {DEMO_ACCOUNTS.map((tk) => (
-                <Button
-                  key={tk.role}
-                  block
-                  onClick={() => quickLogin(tk.phone)}
-                  disabled={loading}
-                  style={{ borderRadius: 10, height: 46, textAlign: 'left' }}
-                >
-                  <span style={{ fontWeight: 600 }}>{tk.role}</span>
-                  <span style={{ color: '#8c8c8c', fontSize: 12, marginLeft: 8 }}>{tk.hint}</span>
-                </Button>
-              ))}
-            </div>
-            <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <Link to="/login"><Text type="secondary" style={{ fontSize: 13 }}>Bạn là khách gửi xe?</Text></Link>
-            </div>
-          </>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <Link to="/login"><Text type="secondary" style={{ fontSize: 13 }}>Bạn là khách gửi xe?</Text></Link>
+          </div>
         ) : (
           <>
             <Divider plain><Text type="secondary" style={{ fontSize: 13 }}>Chưa có tài khoản?</Text></Divider>
