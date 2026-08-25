@@ -28,7 +28,7 @@ const ERROR_TEXT = {
   1050: 'Không tìm thấy vé này. Kiểm tra lại mã.',
   1055: 'Chưa có biểu giá cho loại xe này. Báo quản trị viên.',
   1070: 'Vé này đã dùng rồi — lượt gửi đã đóng.',
-  1066: 'Còn thiếu ảnh lúc ra.',
+  1071: 'Còn thiếu ảnh lúc ra.',
   1067: 'Lượt gửi này đã thu tiền rồi.',
   1051: 'Mã QR không tồn tại.',
   1052: 'Mã QR đã hết hạn.',

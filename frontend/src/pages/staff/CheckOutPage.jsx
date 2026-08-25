@@ -36,7 +36,7 @@ export default function CheckOutPage() {
       setPhotoStep(false);
       setResult(res.data.result);
     } catch (err) {
-      if (errorCode(err) === 1066) {
+      if (errorCode(err) === 1071) {
         setTicket(code);
         setResult(null);
         setPhotoStep(true);

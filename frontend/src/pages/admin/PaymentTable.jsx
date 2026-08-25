@@ -8,7 +8,7 @@ const STATUS = {
   CANCELLED: { color: 'default', label: 'Đã huỷ' },
 };
 
-const METHOD = { CASH: 'Tiền mặt', VNPAY: 'Quét mã QR' };
+const METHOD = { CASH: 'Tiền mặt', VNPAY: 'Quét mã QR', BANK_TRANSFER: 'Chuyển khoản', SUBSCRIPTION: 'Gói tháng' };
 
 export default function PaymentTable({ payments, loading }) {
   const columns = [

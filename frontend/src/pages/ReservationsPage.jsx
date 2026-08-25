@@ -246,7 +246,7 @@ export default function ReservationsPage() {
         return;
       }
 
-      if (responseCode === 1066) {
+      if (responseCode === 1071) {
         form.setFields([{ name: 'slotId', errors: ['Bạn chưa upload đủ ảnh xác nhận ra khỏi bãi.'] }]);
         message.error('Bạn chưa upload đủ ảnh xác nhận ra khỏi bãi.');
         return;
