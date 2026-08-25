@@ -138,10 +138,10 @@ export default function GuestCheckInPage() {
                 name={key}
                 label={label}
                 valuePropName="fileList"
-                getValueFromEvent={(event) => event?.fileList}
+                getValueFromEvent={(event) => event?.fileList || []}
                 rules={[{ required: true, message: `Tải lên ${label.toLowerCase()}` }]}
               >
-                <Upload.Dragger {...imageProps}>
+                <Upload.Dragger {...imageProps} listType="picture" showUploadList={{ showPreviewIcon: true }}>
                   <p className="ant-upload-drag-icon"><InboxOutlined /></p>
                   <p className="ant-upload-text">Chọn ảnh</p>
                   <p className="ant-upload-hint">JPG, PNG, WEBP tối đa 5MB</p>
