@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Col, Form, Input, Result, Row, Select, Space, Upload, message } from 'antd';
-import { InboxOutlined, RollbackOutlined, SendOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Form, Input, Modal, Result, Row, Select, Space, Upload, message } from 'antd';
+import { DeleteOutlined, InboxOutlined, RollbackOutlined, SendOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import checkingService from '../services/checkingService';
 
@@ -15,14 +15,29 @@ const imageFields = [
 const imageProps = {
   accept: '.jpg,.jpeg,.png,.webp',
   maxCount: 1,
+  previewFile: (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+  }),
+  onRemove: (file) => {
+    if (file?.preview && String(file.preview).startsWith('blob:')) {
+      URL.revokeObjectURL(file.preview);
+    }
+  },
   beforeUpload: (file) => {
     const validType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
     const validSize = file.size <= 5 * 1024 * 1024;
     if (!validType) message.error('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP');
     if (!validSize) message.error('Ảnh không được vượt quá 5MB');
+    if (validType && validSize && !file.preview) {
+      file.preview = URL.createObjectURL(file);
+    }
     return validType && validSize ? false : Upload.LIST_IGNORE;
   },
 };
+
+const getPreviewSrc = (file) => file.thumbUrl || file.url || file.preview;
 
 // getValueFromEvent tra ve chinh mang fileList, nen value la mang.
 // Van do phong truong hop antd doi ve dang { fileList: [...] }.
@@ -33,7 +48,42 @@ export default function GuestCheckInPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [ticket, setTicket] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState('');
+  const [previewTitle, setPreviewTitle] = useState('');
   const navigate = useNavigate();
+
+  const openImagePreview = (src, name) => {
+    if (!src) return;
+    setPreviewImage(src);
+    setPreviewTitle(name || 'Xem ảnh');
+    setPreviewOpen(true);
+  };
+
+  const renderUploadItem = (_, file, __, actions) => {
+    const src = getPreviewSrc(file);
+    return (
+      <div style={{ width: '100%', border: '1px solid #f0f0f0', borderRadius: 8, padding: 8, background: '#fff', textAlign: 'center' }}>
+        {src ? (
+          <img
+            src={src}
+            alt={file.name}
+            onClick={() => openImagePreview(src, file.name)}
+            style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 6, marginBottom: 8, cursor: 'zoom-in' }}
+          />
+        ) : null}
+        <div style={{ fontSize: 12, lineHeight: 1.4, marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={file.name}>{file.name}</div>
+        <Space size={4}>
+          <Button type="text" size="small" onClick={() => openImagePreview(src, file.name)} disabled={!src}>
+            Xem rõ
+          </Button>
+          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={actions.remove}>
+            Xóa
+          </Button>
+        </Space>
+      </div>
+    );
+  };
 
   const handleSubmit = async (values) => {
     const images = Object.fromEntries(imageFields.map(({ key }) => [key, getFile(values[key])]));
@@ -141,11 +191,15 @@ export default function GuestCheckInPage() {
                 getValueFromEvent={(event) => event?.fileList || []}
                 rules={[{ required: true, message: `Tải lên ${label.toLowerCase()}` }]}
               >
-                <Upload.Dragger {...imageProps} listType="picture" showUploadList={{ showPreviewIcon: true }}>
-                  <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-                  <p className="ant-upload-text">Chọn ảnh</p>
-                  <p className="ant-upload-hint">JPG, PNG, WEBP tối đa 5MB</p>
-                </Upload.Dragger>
+                <Upload
+                  {...imageProps}
+                  listType="text"
+                  showUploadList={{ showPreviewIcon: false, showRemoveIcon: false }}
+                  itemRender={renderUploadItem}
+                  style={{ width: 180 }}
+                >
+                  <Button size="small" icon={<InboxOutlined />}>Chọn ảnh</Button>
+                </Upload>
               </Form.Item>
             </Col>
           ))}
@@ -157,6 +211,16 @@ export default function GuestCheckInPage() {
           </Button>
         </Form.Item>
       </Form>
+
+      <Modal
+        open={previewOpen}
+        title={previewTitle}
+        footer={null}
+        onCancel={() => setPreviewOpen(false)}
+        centered
+      >
+        <img src={previewImage} alt={previewTitle} style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
+      </Modal>
     </Card>
   );
 }
