@@ -50,6 +50,16 @@ export default function VehiclesPage() {
 
   const handleSubmit = async (values) => {
     try {
+      const normalizedPlate = values.plateNumber.trim().replace(/\s+/g, '').toUpperCase();
+      const duplicate = vehicles.some((vehicle) => {
+        const current = String(vehicle.plateNumber || '').trim().replace(/\s+/g, '').toUpperCase();
+        return current === normalizedPlate && (!editingVehicle || vehicle.vehicleId !== editingVehicle.vehicleId);
+      });
+      if (duplicate) {
+        message.error('Biển số xe đã tồn tại. Vui lòng nhập biển số khác!');
+        return;
+      }
+
       const formData = new FormData();
       formData.append('plateNumber', values.plateNumber);
       formData.append('vehicleTypeCode', values.vehicleTypeCode);

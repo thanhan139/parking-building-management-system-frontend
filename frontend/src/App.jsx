@@ -14,6 +14,7 @@ import CheckOutPage from './pages/staff/CheckOutPage';
 import PricingPage from './pages/admin/PricingPage';
 import PaymentPage from './pages/admin/PaymentPage';
 import PlanPage from './pages/admin/PlanPage';
+import UserPage from './pages/admin/UserPage';
 import PaymentResultPage from './pages/PaymentResultPage';
 import ComplaintManagementPage from './pages/ComplaintManagementPage';
 
@@ -21,6 +22,7 @@ const MENU_ADMIN = [
   { key: '/admin/plans', icon: <CreditCardOutlined />, label: 'Gói đăng ký' },
   { key: '/admin/pricing', icon: <DollarOutlined />, label: 'Biểu giá' },
   { key: '/admin/payments', icon: <ProfileOutlined />, label: 'Giao dịch' },
+  { key: '/admin/users', icon: <ProfileOutlined />, label: 'Quản lý user' },
   { key: '/admin/complaints', icon: <MessageOutlined />, label: 'Khiếu nại' },
 ];
 
@@ -84,6 +86,7 @@ export default function App() {
                 <Route path="plans" element={<PlanPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="payments" element={<PaymentPage />} />
+                <Route path="users" element={<UserPage />} />
                 <Route path="complaints" element={<ComplaintManagementPage />} />
               </Route>
 
