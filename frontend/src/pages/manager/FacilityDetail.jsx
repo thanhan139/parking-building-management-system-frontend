@@ -3,11 +3,11 @@ import { AppstoreOutlined, BankOutlined, LayoutOutlined } from '@ant-design/icon
 import { CATEGORY, ICON, POWER, allowedCategories } from './facilityLabels';
 import { SlotGrid } from './SlotGrid';
 
-export default function FacilityDetail({ node, onEdit, onAdd, onRemove, onSlotClick }) {
+export default function FacilityDetail({ node, onEdit, onAdd, onRemove, onSlotClick, khachChuaGanO }) {
   if (!node) return <Empty description="Chọn một nhánh bên trái" />;
   if (node.type === 'building') return <BuildingPanel node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} />;
   if (node.type === 'floor') return <FloorPanel node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} />;
-  return <ZonePanel node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} onSlotClick={onSlotClick} />;
+  return <ZonePanel node={node} onEdit={onEdit} onAdd={onAdd} onRemove={onRemove} onSlotClick={onSlotClick} khachChuaGanO={khachChuaGanO} />;
 }
 
 function BuildingPanel({ node, onEdit, onAdd, onRemove }) {
@@ -26,6 +26,7 @@ function BuildingPanel({ node, onEdit, onAdd, onRemove }) {
         <Descriptions.Item label="Số tầng">{floorCount}</Descriptions.Item>
       </Descriptions>
 
+      {onEdit && (
       <Space wrap>
         <Button onClick={() => onEdit({ type: 'building', mode: 'edit', id: building.id, initial: building })}>
           Sửa toà nhà
@@ -38,6 +39,7 @@ function BuildingPanel({ node, onEdit, onAdd, onRemove }) {
           + Thêm tầng
         </Button>
       </Space>
+      )}
     </>
   );
 }
@@ -62,9 +64,10 @@ function FloorPanel({ node, onEdit, onAdd, onRemove }) {
             {floor.guestAllowed ? 'Khách vãng lai' : 'Thành viên'}
           </Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="ZonePanel">{zoneUsed}/{floor.zoneCount ?? '–'}</Descriptions.Item>
+        <Descriptions.Item label="Số khu">{zoneUsed}/{floor.zoneCount ?? '–'}</Descriptions.Item>
       </Descriptions>
 
+      {onEdit && (
       <Space wrap>
         <Button onClick={() => onEdit({ type: 'floor', mode: 'edit', id: floor.id, parentId: floor.buildingId, initial: floor })}>
           Sửa tầng
@@ -84,24 +87,26 @@ function FloorPanel({ node, onEdit, onAdd, onRemove }) {
         </Button>
         {full && <span style={{ color: '#c0392b' }}>đã đủ {floor.zoneCount} khu — nâng &quot;số khu tối đa&quot; trước</span>}
       </Space>
+      )}
     </>
   );
 }
 
-function ZonePanel({ node, onEdit, onAdd, onRemove, onSlotClick }) {
+function ZonePanel({ node, onEdit, onAdd, onRemove, onSlotClick, khachChuaGanO }) {
   const zone = node.raw;
   const floor = node.parent;
   const slotUsed = zone.slots.length;
 
   return (
     <>
-      <h3><AppstoreOutlined style={{ ...ICON, marginRight: 8 }} />ZonePanel {zone.code} {zone.name && `– ${zone.name}`}</h3>
+      <h3><AppstoreOutlined style={{ ...ICON, marginRight: 8 }} />Khu {zone.code} {zone.name && `– ${zone.name}`}</h3>
       <Descriptions size="small" column={3} style={{ marginBottom: 12 }}>
         <Descriptions.Item label="Loại xe">{CATEGORY[zone.allowedCategory]}</Descriptions.Item>
         <Descriptions.Item label="Nguồn">{POWER[zone.powerPolicy]}</Descriptions.Item>
         <Descriptions.Item label="Ô">{slotUsed}/{zone.slotCapacity ?? '–'}</Descriptions.Item>
       </Descriptions>
 
+      {onEdit && (
       <Space wrap style={{ marginBottom: 16 }}>
         <Button onClick={() => onEdit({
           type: 'zone', mode: 'edit', id: zone.id, parentId: zone.floorId,
@@ -114,10 +119,13 @@ function ZonePanel({ node, onEdit, onAdd, onRemove, onSlotClick }) {
         </Popconfirm>
         {slotUsed > 0 && <span style={{ color: '#c0392b' }}>còn {slotUsed} ô nên chưa xoá được</span>}
       </Space>
+      )}
 
       <SlotGrid
         zone={zone}
-        onAddSlot={() => onAdd({ type: 'slot', mode: 'create', parentId: zone.id })}
+        tangKhach={floor?.guestAllowed}
+        khachChuaGanO={khachChuaGanO}
+        onAddSlot={onAdd && (() => onAdd({ type: 'slot', mode: 'create', parentId: zone.id }))}
         onSlotClick={onSlotClick}
       />
     </>

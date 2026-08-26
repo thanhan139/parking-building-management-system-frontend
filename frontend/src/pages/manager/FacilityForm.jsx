@@ -133,9 +133,6 @@ export default function FacilityForm({ open, type, mode, initial, categoryOption
             <Form.Item name="code" label="Mã ô" rules={[{ required: true, message: 'Chưa nhập mã' }]}>
               <Input placeholder="B1-Z1-001" />
             </Form.Item>
-            <Form.Item name="hasCharger" label="Có trụ sạc" valuePropName="checked" initialValue={false}>
-              <Switch />
-            </Form.Item>
             <Form.Item name="maxHeightCm" label="Chiều cao tối đa (cm)">
               <InputNumber min={0} style={{ width: '100%' }} />
             </Form.Item>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { App, Card } from 'antd';
 import facilityService, { errorText } from '../../services/facilityService';
+import checkOutService from '../../services/checkOutService';
 import FacilityTree from './FacilityTree';
 import FacilityDetail from './FacilityDetail';
 import FacilityForm from './FacilityForm';
@@ -13,6 +14,8 @@ export default function FacilityPage() {
   const [selected, setSelected] = useState(null);
   const [formState, setFormState] = useState(null);
   const [slotModal, setSlotModal] = useState(null);
+  const [xeTheoO, setXeTheoO] = useState({});
+  const [khachChuaGanO, setKhachChuaGanO] = useState(0);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -27,7 +30,15 @@ export default function FacilityPage() {
           }
         }
       }
+      const dangGui = (await checkOutService.parkedSessions()).data.result || [];
+      const theoO = {};
+      dangGui.forEach((xe) => {
+        if (xe.slotId) theoO[xe.slotId] = xe;
+      });
+
       setBuildings(list);
+      setXeTheoO(theoO);
+      setKhachChuaGanO(dangGui.filter((xe) => !xe.slotId).length);
     } catch (err) {
       message.error(errorText(err));
     } finally {
@@ -111,6 +122,7 @@ export default function FacilityPage() {
             onAdd={setFormState}
             onRemove={remove}
             onSlotClick={setSlotModal}
+            khachChuaGanO={khachChuaGanO}
           />
         </Card>
       </div>
@@ -129,6 +141,7 @@ export default function FacilityPage() {
         <SlotModal
           key={slotModal.id}
           slot={slotModal}
+          xe={xeTheoO[slotModal.id]}
           onClose={() => setSlotModal(null)}
           onStatus={changeSlotStatus}
           onRemove={remove}

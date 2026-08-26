@@ -88,9 +88,11 @@ export default function FacilityTree({ buildings, loading, selectedKey, onSelect
           />
         )}
       </Spin>
-      <Button block type="dashed" style={{ marginTop: 12 }} onClick={onAddBuilding}>
-        + Thêm toà nhà
-      </Button>
+      {onAddBuilding && (
+        <Button block type="dashed" style={{ marginTop: 12 }} onClick={onAddBuilding}>
+          + Thêm toà nhà
+        </Button>
+      )}
     </Card>
   );
 }

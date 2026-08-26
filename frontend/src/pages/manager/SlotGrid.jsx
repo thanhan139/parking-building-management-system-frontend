@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { Button, Modal, Popconfirm, Select, Space } from 'antd';
-import { SLOT_STYLE } from './facilityLabels';
+import { Button, Descriptions, Modal, Popconfirm, Select, Space } from 'antd';
+import { CATEGORY, SLOT_STYLE } from './facilityLabels';
 
-export function SlotGrid({ zone, onAddSlot, onSlotClick }) {
+function gioVao(t) {
+  return t ? new Date(t).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '–';
+}
+
+export function SlotGrid({ zone, onAddSlot, onSlotClick, tangKhach, khachChuaGanO }) {
   const used = zone.slots.length;
   const full = zone.slotCapacity != null && used >= zone.slotCapacity;
 
@@ -23,6 +27,12 @@ export function SlotGrid({ zone, onAddSlot, onSlotClick }) {
         ))}
       </div>
 
+      {tangKhach && khachChuaGanO > 0 && (
+        <p style={{ color: '#b8700f', fontSize: 12, margin: '0 0 8px' }}>
+          Còn {khachChuaGanO} xe khách vãng lai không gắn ô — không hiện trên sơ đồ này.
+        </p>
+      )}
+
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {zone.slots.map((slot) => {
           const style = SLOT_STYLE[slot.status] || SLOT_STYLE.LOCKED;
@@ -42,7 +52,7 @@ export function SlotGrid({ zone, onAddSlot, onSlotClick }) {
           );
         })}
 
-        {!full && (
+        {onAddSlot && !full && (
           <button
             onClick={onAddSlot}
             style={{
@@ -55,7 +65,7 @@ export function SlotGrid({ zone, onAddSlot, onSlotClick }) {
         )}
       </div>
 
-      {full && (
+      {onAddSlot && full && (
         <p style={{ color: '#c0392b', marginTop: 12 }}>
           Đã đủ {zone.slotCapacity} ô — muốn thêm phải nâng sức chứa của khu trước.
         </p>
@@ -64,16 +74,27 @@ export function SlotGrid({ zone, onAddSlot, onSlotClick }) {
   );
 }
 
-export function SlotModal({ slot, onClose, onStatus, onRemove }) {
+export function SlotModal({ slot, onClose, onStatus, onRemove, xe }) {
   const [status, setStatus] = useState(slot.status);
   const occupied = slot.status === 'OCCUPIED';
 
   return (
     <Modal open title={`Ô ${slot.code}`} onCancel={onClose} footer={null}>
       {occupied ? (
-        <p style={{ color: '#c0392b' }}>
-          Ô này đang có xe. Không đổi trạng thái và không xoá được — cho xe ra trước đã.
-        </p>
+        xe ? (
+          <Descriptions size="small" column={1} bordered>
+            <Descriptions.Item label="Mã vé">{xe.ticketCode}</Descriptions.Item>
+            <Descriptions.Item label="Biển số">{xe.plateNumber}</Descriptions.Item>
+            <Descriptions.Item label="Loại xe">{CATEGORY[xe.vehicleCategory] || xe.vehicleCategory}</Descriptions.Item>
+            <Descriptions.Item label="Vào lúc">{gioVao(xe.entryTime)} · cổng {xe.entryGate}</Descriptions.Item>
+          </Descriptions>
+        ) : (
+          <p style={{ color: '#c0392b' }}>
+            Ô đang treo cờ &quot;có xe&quot; nhưng hệ thống không tìm thấy lượt gửi nào. Báo quản lý.
+          </p>
+        )
+      ) : !onStatus ? (
+        <p style={{ color: '#8c8c8c' }}>Ô đang trống.</p>
       ) : (
         <>
           <p>Đổi trạng thái:</p>
@@ -91,9 +112,11 @@ export function SlotModal({ slot, onClose, onStatus, onRemove }) {
             <Button type="primary" onClick={() => onStatus(slot.id, status)} disabled={status === slot.status}>
               Lưu trạng thái
             </Button>
-            <Popconfirm title="Xoá ô này?" okText="Xoá" cancelText="Huỷ" onConfirm={() => onRemove('slot', slot.id)}>
-              <Button danger>Xoá ô</Button>
-            </Popconfirm>
+            {onRemove && (
+              <Popconfirm title="Xoá ô này?" okText="Xoá" cancelText="Huỷ" onConfirm={() => onRemove('slot', slot.id)}>
+                <Button danger>Xoá ô</Button>
+              </Popconfirm>
+            )}
           </Space>
         </>
       )}

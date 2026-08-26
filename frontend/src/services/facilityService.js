@@ -34,6 +34,7 @@ const ERROR_TEXT = {
   1042: 'Khu còn ô bên trong. Xoá hết ô trước.',
   1043: 'Ô đang có xe. Cho xe ra rồi mới sửa hoặc xoá được.',
   1044: 'Sức chứa mới nhỏ hơn số đã tạo. Xoá bớt trước.',
+  1072: 'Ô này chỉ để đếm sức chứa khách vãng lai. Chỉ quản lý mới đổi được trạng thái.',
 };
 
 export function errorText(err) {

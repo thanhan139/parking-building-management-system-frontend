@@ -11,6 +11,7 @@ import FacilityPage from './pages/manager/FacilityPage';
 import GuestCheckInPage from './pages/GuestCheckInPage';
 import MemberCheckInPage from './pages/MemberCheckInPage';
 import CheckOutPage from './pages/staff/CheckOutPage';
+import BaiDoPage from './pages/staff/BaiDoPage';
 import PricingPage from './pages/admin/PricingPage';
 import PaymentPage from './pages/admin/PaymentPage';
 import PlanPage from './pages/admin/PlanPage';
@@ -34,6 +35,7 @@ const MENU_STAFF = [
   { key: '/staff/check-in', icon: <ImportOutlined />, label: 'Check-in khách' },
   { key: '/staff/member-check-in', icon: <ImportOutlined />, label: 'Check-in thành viên' },
   { key: '/staff/check-out', icon: <ExportOutlined />, label: 'Xe ra' },
+  { key: '/staff/bai-do', icon: <ApartmentOutlined />, label: 'Sơ đồ bãi' },
   { key: '/staff/complaints', icon: <MessageOutlined />, label: 'Khiếu nại' },
 ];
 
@@ -106,6 +108,7 @@ export default function App() {
                 <Route path="check-in" element={<GuestCheckInPage />} />
                 <Route path="member-check-in" element={<MemberCheckInPage />} />
                 <Route path="check-out" element={<CheckOutPage />} />
+                <Route path="bai-do" element={<BaiDoPage />} />
                 <Route path="complaints" element={<ComplaintManagementPage />} />
               </Route>
 
