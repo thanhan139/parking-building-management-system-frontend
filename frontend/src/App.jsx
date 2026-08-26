@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
-import { ApartmentOutlined, CreditCardOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, CreditCardOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined, MessageOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
@@ -16,12 +16,14 @@ import PaymentPage from './pages/admin/PaymentPage';
 import PlanPage from './pages/admin/PlanPage';
 import UserPage from './pages/admin/UserPage';
 import PaymentResultPage from './pages/PaymentResultPage';
+import ComplaintManagementPage from './pages/ComplaintManagementPage';
 
 const MENU_ADMIN = [
   { key: '/admin/plans', icon: <CreditCardOutlined />, label: 'Gói đăng ký' },
   { key: '/admin/pricing', icon: <DollarOutlined />, label: 'Biểu giá' },
   { key: '/admin/payments', icon: <ProfileOutlined />, label: 'Giao dịch' },
   { key: '/admin/users', icon: <ProfileOutlined />, label: 'Quản lý user' },
+  { key: '/admin/complaints', icon: <MessageOutlined />, label: 'Khiếu nại' },
 ];
 
 const MENU_MANAGER = [
@@ -32,6 +34,7 @@ const MENU_STAFF = [
   { key: '/staff/check-in', icon: <ImportOutlined />, label: 'Check-in khách' },
   { key: '/staff/member-check-in', icon: <ImportOutlined />, label: 'Check-in thành viên' },
   { key: '/staff/check-out', icon: <ExportOutlined />, label: 'Xe ra' },
+  { key: '/staff/complaints', icon: <MessageOutlined />, label: 'Khiếu nại' },
 ];
 
 // Guard chung: chi cho phep cac role trong "allow" vao khu vuc nay.
@@ -69,6 +72,7 @@ export default function App() {
               <Route path="/reservations" element={<MainPage />} />
               <Route path="/subscriptions" element={<MainPage />} />
               <Route path="/payments" element={<MainPage />} />
+              <Route path="/complaints" element={<MainPage />} />
               <Route path="/profile" element={<MainPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/internal/login" element={<LoginPage />} />
@@ -83,6 +87,7 @@ export default function App() {
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="payments" element={<PaymentPage />} />
                 <Route path="users" element={<UserPage />} />
+                <Route path="complaints" element={<ComplaintManagementPage />} />
               </Route>
 
               <Route
@@ -101,6 +106,7 @@ export default function App() {
                 <Route path="check-in" element={<GuestCheckInPage />} />
                 <Route path="member-check-in" element={<MemberCheckInPage />} />
                 <Route path="check-out" element={<CheckOutPage />} />
+                <Route path="complaints" element={<ComplaintManagementPage />} />
               </Route>
 
               <Route path="/staff/guest-check-in" element={<Navigate to="/staff/check-in" replace />} />

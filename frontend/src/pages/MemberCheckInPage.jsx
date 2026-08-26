@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Col, Form, Input, Result, Row, Space, Upload, message } from 'antd';
-import { InboxOutlined, RollbackOutlined, ScanOutlined, SendOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Form, Input, Modal, Result, Row, Space, Upload, message } from 'antd';
+import { DeleteOutlined, InboxOutlined, RollbackOutlined, ScanOutlined, SendOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import checkingService from '../services/checkingService';
 
@@ -15,14 +15,29 @@ const imageFields = [
 const imageProps = {
   accept: '.jpg,.jpeg,.png,.webp',
   maxCount: 1,
+  previewFile: (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+  }),
+  onRemove: (file) => {
+    if (file?.preview && String(file.preview).startsWith('blob:')) {
+      URL.revokeObjectURL(file.preview);
+    }
+  },
   beforeUpload: (file) => {
     const validType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
     const validSize = file.size <= 5 * 1024 * 1024;
     if (!validType) message.error('Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP');
     if (!validSize) message.error('Ảnh không được vượt quá 5MB');
+    if (validType && validSize && !file.preview) {
+      file.preview = URL.createObjectURL(file);
+    }
     return validType && validSize ? false : Upload.LIST_IGNORE;
   },
 };
+
+const getPreviewSrc = (file) => file.thumbUrl || file.url || file.preview;
 
 const getFile = (value) =>
   (Array.isArray(value) ? value[0] : value?.fileList?.[0])?.originFileObj;
@@ -31,7 +46,42 @@ export default function MemberCheckInPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [ticket, setTicket] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState('');
+  const [previewTitle, setPreviewTitle] = useState('');
   const navigate = useNavigate();
+
+  const openImagePreview = (src, name) => {
+    if (!src) return;
+    setPreviewImage(src);
+    setPreviewTitle(name || 'Xem ảnh');
+    setPreviewOpen(true);
+  };
+
+  const renderUploadItem = (_, file, __, actions) => {
+    const src = getPreviewSrc(file);
+    return (
+      <div style={{ width: '100%', border: '1px solid #f0f0f0', borderRadius: 8, padding: 8, background: '#fff', textAlign: 'center' }}>
+        {src ? (
+          <img
+            src={src}
+            alt={file.name}
+            onClick={() => openImagePreview(src, file.name)}
+            style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 6, marginBottom: 8, cursor: 'zoom-in' }}
+          />
+        ) : null}
+        <div style={{ fontSize: 12, lineHeight: 1.4, marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={file.name}>{file.name}</div>
+        <Space size={4}>
+          <Button type="text" size="small" onClick={() => openImagePreview(src, file.name)} disabled={!src}>
+            Xem rõ
+          </Button>
+          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={actions.remove}>
+            Xóa
+          </Button>
+        </Space>
+      </div>
+    );
+  };
 
   const handleSubmit = async (values) => {
     const images = Object.fromEntries(imageFields.map(({ key }) => [key, getFile(values[key])]));
@@ -43,18 +93,26 @@ export default function MemberCheckInPage() {
         entryGate: values.entryGate,
         images,
       });
-      setTicket(res.data);
+      setTicket(res.data?.result || res.data);
       message.success('Check-in thành viên thành công');
     } catch (err) {
       const code = err.response?.data?.code;
       const messages = {
-        INVALID_QR_TOKEN: 'Mã QR không hợp lệ hoặc đã hết hạn.',
-        INVALID_PLATE_NUMBER: 'Biển số hiện tại không khớp với thông tin member.',
-        INVALID_ENTRY_GATE: 'Cổng vào không hợp lệ cho member này.',
-        INVALID_IMAGE: 'Vui lòng cung cấp đủ 5 ảnh hợp lệ.',
-        MEMBER_ALREADY_CHECKED_IN: 'Thành viên này đã check-in và chưa checkout.',
+        QR_TOKEN_NOT_EXISTED: 'Mã QR không tồn tại.',
+        QR_TOKEN_EXPIRED: 'Mã QR đã hết hạn. Vui lòng tạo mã QR mới.',
+        QR_TOKEN_ALREADY_USED: 'Mã QR này đã được sử dụng. Vui lòng tạo mã QR mới.',
+        PLATE_MISMATCH: 'Biển số hiện tại không khớp với reservation.',
+        SLOT_NOT_AVAILABLE: 'Slot không còn sẵn sàng. Vui lòng kiểm tra lại reservation.',
+        VEHICLE_NOT_ACTIVE: 'Vehicle chưa ACTIVE, không thể check-in.',
+        SUBSCRIPTION_NOT_ACTIVE: 'Subscription của vehicle chưa ACTIVE.',
+        RESERVATION_ACTIVE_EXISTS: 'Vehicle đang có parking session hoặc reservation đang hoạt động.',
       };
-      message.error(messages[code] || err.response?.data?.message || 'Check-in thành viên thất bại');
+      if (err.response?.status === 400 || err.response?.status === 500) {
+        console.error('Member check-in failed:', err);
+        message.error('Hệ thống đang gặp lỗi dữ liệu, vui lòng thử lại sau hoặc liên hệ admin.');
+      } else {
+        message.error(messages[code] || err.response?.data?.message || 'Check-in thành viên thất bại');
+      }
     } finally {
       setLoading(false);
     }
@@ -138,14 +196,18 @@ export default function MemberCheckInPage() {
                 name={key}
                 label={label}
                 valuePropName="fileList"
-                getValueFromEvent={(event) => event?.fileList}
+                getValueFromEvent={(event) => event?.fileList || []}
                 rules={[{ required: true, message: `Tải lên ${label.toLowerCase()}` }]}
               >
-                <Upload.Dragger {...imageProps}>
-                  <p className="ant-upload-drag-icon"><InboxOutlined /></p>
-                  <p className="ant-upload-text">Chọn ảnh</p>
-                  <p className="ant-upload-hint">JPG, PNG, WEBP tối đa 5MB</p>
-                </Upload.Dragger>
+                <Upload
+                  {...imageProps}
+                  listType="text"
+                  showUploadList={{ showPreviewIcon: false, showRemoveIcon: false }}
+                  itemRender={renderUploadItem}
+                  style={{ width: 180 }}
+                >
+                  <Button size="small" icon={<InboxOutlined />}>Chọn ảnh</Button>
+                </Upload>
               </Form.Item>
             </Col>
           ))}
@@ -157,6 +219,16 @@ export default function MemberCheckInPage() {
           </Button>
         </Form.Item>
       </Form>
+
+      <Modal
+        open={previewOpen}
+        title={previewTitle}
+        footer={null}
+        onCancel={() => setPreviewOpen(false)}
+        centered
+      >
+        <img src={previewImage} alt={previewTitle} style={{ width: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
+      </Modal>
     </Card>
   );
 }

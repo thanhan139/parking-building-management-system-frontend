@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Layout, Menu, Avatar, Dropdown, Typography } from 'antd';
 import {
   CarOutlined, SearchOutlined, CalendarOutlined, CreditCardOutlined,
-  HistoryOutlined, LogoutOutlined, UserOutlined, DashboardOutlined,
+  HistoryOutlined, LogoutOutlined, UserOutlined, DashboardOutlined, MessageOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, homeForRole } from '../contexts/AuthContext';
@@ -15,6 +15,7 @@ import ReservationsPage from './ReservationsPage';
 import SubscriptionsPage from './SubscriptionsPage';
 import PaymentHistoryPage from './PaymentHistoryPage';
 import ProfilePage from './ProfilePage';
+import ComplaintsPage from './ComplaintsPage';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -26,6 +27,7 @@ const navItems = [
   { key: '/reservations', icon: <CalendarOutlined />, label: 'Đặt chỗ' },
   { key: '/subscriptions', icon: <CreditCardOutlined />, label: 'Gói thuê bao' },
   { key: '/payments', icon: <HistoryOutlined />, label: 'Lịch sử thanh toán' },
+  { key: '/complaints', icon: <MessageOutlined />, label: 'Khiếu nại' },
 ];
 
 export default function MainPage() {
@@ -81,6 +83,7 @@ export default function MainPage() {
       case 'subscriptions': return <SubscriptionsPage key="subscriptions" />;
       case 'payments': return <PaymentHistoryPage key="payments" />;
       case 'profile': return <ProfilePage key="profile" />;
+      case 'complaints': return <ComplaintsPage key="complaints" />;
       default: return <DashboardPage key="dashboard" />;
     }
   };
