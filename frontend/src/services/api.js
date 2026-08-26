@@ -8,7 +8,6 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  // FormData phai de trinh duyet tu dat Content-Type, vi no can kem boundary.
   // Dat tay 'multipart/form-data' se thieu boundary va Spring khong tach duoc cac phan.
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
