@@ -3,6 +3,7 @@ import api from './api';
 const pricingService = {
   getByCategory: (vehicleCategory) => api.get(`/api/pricing-rules/category/${vehicleCategory}`),
   create: (body) => api.post('/api/pricing-rules', body),
+  update: (id, body) => api.put(`/api/pricing-rules/${id}`, body),
   remove: (id) => api.delete(`/api/pricing-rules/${id}`),
 };
 

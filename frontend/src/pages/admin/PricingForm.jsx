@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Alert, DatePicker, Divider, Form, InputNumber, Modal, Select, TimePicker } from 'antd';
 import dayjs from 'dayjs';
 import { CATEGORY, CUSTOMER } from './pricingLabels';
@@ -38,8 +39,19 @@ function NumberFields({ fields }) {
   );
 }
 
-export default function PricingForm({ open, onCancel, onSubmit }) {
+export default function PricingForm({ open, onCancel, onSubmit, sua }) {
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (!open) return;
+    if (!sua) { form.resetFields(); return; }
+    form.setFieldsValue({
+      ...sua,
+      overnightHour: sua.overnightHour ? dayjs(sua.overnightHour, 'HH:mm:ss') : null,
+      effectiveFrom: sua.effectiveFrom ? dayjs(sua.effectiveFrom) : null,
+      effectiveTo: sua.effectiveTo ? dayjs(sua.effectiveTo) : null,
+    });
+  }, [open, sua, form]);
 
   const submit = async () => {
     let values;
@@ -66,8 +78,8 @@ export default function PricingForm({ open, onCancel, onSubmit }) {
   return (
     <Modal
       open={open}
-      title="Biểu giá mới"
-      okText="Tạo"
+      title={sua ? `Sửa biểu giá #${sua.id}` : 'Biểu giá mới'}
+      okText={sua ? 'Lưu' : 'Tạo'}
       cancelText="Thôi"
       width={720}
       onCancel={onCancel}
@@ -78,8 +90,10 @@ export default function PricingForm({ open, onCancel, onSubmit }) {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message="Không sửa được biểu giá cũ"
-        description="Biểu giá là bằng chứng số tiền đã thu. Muốn đổi giá thì tạo dòng mới — dòng đang chạy tự đóng lại tại ngày hiệu lực mới."
+        message={sua ? 'Chỉ sửa được biểu giá chưa tới lịch' : 'Không sửa được biểu giá đã chạy'}
+        description={sua
+          ? 'Biểu giá này chưa tới ngày hiệu lực nên còn sửa được. Tới ngày rồi thì nó thành bằng chứng số tiền đã thu, chỉ có thể tạo dòng mới đè lên.'
+          : 'Biểu giá là bằng chứng số tiền đã thu. Muốn đổi giá thì tạo dòng mới — dòng đang chạy tự đóng lại tại ngày hiệu lực mới.'}
       />
 
       <Form

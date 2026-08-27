@@ -1,9 +1,9 @@
 import { Button, Popconfirm, Table, Tag, Tooltip } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { comboName, ruleState, firstBlockText, nextBlockText, surchargeText, dayText } from './pricingLabels';
 
 
-export default function PricingHistory({ rules, loading, onRemove }) {
+export default function PricingHistory({ rules, loading, onRemove, onEdit }) {
   const columns = [
     {
       title: 'Tổ hợp',
@@ -30,22 +30,28 @@ export default function PricingHistory({ rules, loading, onRemove }) {
     },
     {
       title: '',
-      width: 48,
+      width: 88,
       render: (_, rule) => {
-        const canRemove = ruleState(rule).key === 'SCHEDULED';
+        const chuaChay = ruleState(rule).key === 'SCHEDULED';
 
-        if (!canRemove) {
+        if (!chuaChay) {
           return (
-            <Tooltip title="Biểu giá đã tới ngày hiệu lực. Đây là bằng chứng số tiền đã thu nên không xoá được.">
-              <Button type="text" icon={<DeleteOutlined />} disabled />
+            <Tooltip title="Biểu giá đã tới ngày hiệu lực. Đây là bằng chứng số tiền đã thu nên không sửa và không xoá được.">
+              <span>
+                <Button type="text" icon={<EditOutlined />} disabled />
+                <Button type="text" icon={<DeleteOutlined />} disabled />
+              </span>
             </Tooltip>
           );
         }
 
         return (
-          <Popconfirm title="Xoá biểu giá này?" okText="Xoá" cancelText="Thôi" onConfirm={() => onRemove(rule.id)}>
-            <Button type="text" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          <span>
+            <Button type="text" icon={<EditOutlined />} onClick={() => onEdit(rule)} />
+            <Popconfirm title="Xoá biểu giá này?" okText="Xoá" cancelText="Thôi" onConfirm={() => onRemove(rule.id)}>
+              <Button type="text" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          </span>
         );
       },
     },

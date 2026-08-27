@@ -11,6 +11,7 @@ export default function PricingPage() {
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [dangSua, setDangSua] = useState(null);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -31,11 +32,17 @@ export default function PricingPage() {
     loadAll();
   }, [loadAll]);
 
-  const create = async (body) => {
+  const luu = async (body) => {
     try {
-      await pricingService.create(body);
-      message.success('Đã tạo biểu giá mới');
+      if (dangSua) {
+        await pricingService.update(dangSua.id, body);
+        message.success('Đã lưu biểu giá');
+      } else {
+        await pricingService.create(body);
+        message.success('Đã tạo biểu giá mới');
+      }
       setFormOpen(false);
+      setDangSua(null);
       await loadAll();
     } catch (err) {
       message.error(errorText(err));
@@ -56,7 +63,7 @@ export default function PricingPage() {
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0, flex: 1 }}>Biểu giá</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setDangSua(null); setFormOpen(true); }}>
           Biểu giá mới
         </Button>
       </div>
@@ -64,10 +71,20 @@ export default function PricingPage() {
       <PricingActive rules={rules} />
 
       <Card title="Toàn bộ biểu giá" size="small" style={{ marginTop: 16 }} styles={{ body: { padding: 0 } }}>
-        <PricingHistory rules={rules} loading={loading} onRemove={remove} />
+        <PricingHistory
+          rules={rules}
+          loading={loading}
+          onRemove={remove}
+          onEdit={(rule) => { setDangSua(rule); setFormOpen(true); }}
+        />
       </Card>
 
-      <PricingForm open={formOpen} onCancel={() => setFormOpen(false)} onSubmit={create} />
+      <PricingForm
+        open={formOpen}
+        sua={dangSua}
+        onCancel={() => { setFormOpen(false); setDangSua(null); }}
+        onSubmit={luu}
+      />
     </div>
   );
 }
