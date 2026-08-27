@@ -21,6 +21,8 @@ export default function CheckOutPage() {
   const [qrOpen, setQrOpen] = useState(false);
   // nhan vien phai tich xac nhan hai anh bien so va mat truoc khi mo barrier
   const [daDoiChieu, setDaDoiChieu] = useState(false);
+  // tang len sau khi tai anh luc ra, de khoi doi chieu di lay anh moi
+  const [lamMoiAnh, setLamMoiAnh] = useState(0);
 
   const nextVehicle = () => {
     setTicket(null);
@@ -29,6 +31,7 @@ export default function CheckOutPage() {
     setPhotoStep(false);
     setQrOpen(false);
     setDaDoiChieu(false);
+    setLamMoiAnh(0);
   };
 
   const findTicket = async (code) => {
@@ -58,6 +61,7 @@ export default function CheckOutPage() {
       await checkOutService.uploadExitPhotos(ticket, EXIT_GATE, photos);
       const res = await checkOutService.preview(ticket);
       setResult(res.data.result);
+      setLamMoiAnh((n) => n + 1);
     } catch (err) {
       message.error(errorText(err));
     } finally {
@@ -100,7 +104,7 @@ export default function CheckOutPage() {
           onNext={paid ? null : nextVehicle}
         />
 
-        {ticket && <EntryPhotos ticketCode={ticket} onXacNhan={setDaDoiChieu} />}
+        {ticket && <EntryPhotos ticketCode={ticket} onXacNhan={setDaDoiChieu} lamMoi={lamMoiAnh} />}
 
         {ticket && !result && <ExitPhotos step={2} onUpload={uploadPhotos} loading={busy} />}
 

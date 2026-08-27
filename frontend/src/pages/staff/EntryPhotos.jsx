@@ -41,7 +41,7 @@ function Anh({ tam, cao, onXem }) {
   );
 }
 
-export default function EntryPhotos({ ticketCode, onXacNhan }) {
+export default function EntryPhotos({ ticketCode, onXacNhan, lamMoi = 0 }) {
   const [anh, setAnh] = useState(null);
   const [loi, setLoi] = useState(null);
   const [xem, setXem] = useState(null);
@@ -55,7 +55,7 @@ export default function EntryPhotos({ ticketCode, onXacNhan }) {
       .then((res) => !dungLai && setAnh(res.data.result || []))
       .catch((err) => !dungLai && setLoi(errorText(err)));
     return () => { dungLai = true; };
-  }, [ticketCode, onXacNhan]);
+  }, [ticketCode, onXacNhan, lamMoi]);
 
   const tim = (phase, loai) => (anh || []).find((t) => t.phase === phase && t.photoType === loai);
   const cua = (phase) => (anh || []).filter((t) => t.phase === phase);
