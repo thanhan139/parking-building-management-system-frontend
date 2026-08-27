@@ -15,6 +15,8 @@ const subscriptionService = {
   createPlan: (body) => api.post('/api/subscription-plans', body),
   updatePlan: (planId, body) => api.put(`/api/subscription-plans/${planId}`, body),
   deletePlan: (planId) => api.delete(`/api/subscription-plans/${planId}`),
+  // Toan bo lich su mua goi - danh cho ADMIN
+  getAdminPayments: () => api.get('/api/admin/subscription-payments'),
 };
 
 export default subscriptionService;

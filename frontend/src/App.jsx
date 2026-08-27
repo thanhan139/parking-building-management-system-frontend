@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
-import { ApartmentOutlined, CreditCardOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined, MessageOutlined } from '@ant-design/icons';
+import { ApartmentOutlined, HistoryOutlined, CreditCardOutlined, DollarOutlined, ExportOutlined, ImportOutlined, ProfileOutlined, MessageOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
@@ -14,6 +14,7 @@ import CheckOutPage from './pages/staff/CheckOutPage';
 import BaiDoPage from './pages/staff/BaiDoPage';
 import PricingPage from './pages/admin/PricingPage';
 import PaymentPage from './pages/admin/PaymentPage';
+import SubscriptionPaymentPage from './pages/admin/SubscriptionPaymentPage';
 import PlanPage from './pages/admin/PlanPage';
 import UserPage from './pages/admin/UserPage';
 import PaymentResultPage from './pages/PaymentResultPage';
@@ -23,6 +24,7 @@ const MENU_ADMIN = [
   { key: '/admin/plans', icon: <CreditCardOutlined />, label: 'Gói đăng ký' },
   { key: '/admin/pricing', icon: <DollarOutlined />, label: 'Biểu giá' },
   { key: '/admin/payments', icon: <ProfileOutlined />, label: 'Giao dịch' },
+  { key: '/admin/subscription-payments', icon: <HistoryOutlined />, label: 'Thanh toán gói' },
   { key: '/admin/users', icon: <ProfileOutlined />, label: 'Quản lý user' },
   { key: '/admin/complaints', icon: <MessageOutlined />, label: 'Khiếu nại' },
 ];
@@ -88,6 +90,7 @@ export default function App() {
                 <Route path="plans" element={<PlanPage />} />
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="payments" element={<PaymentPage />} />
+                <Route path="subscription-payments" element={<SubscriptionPaymentPage />} />
                 <Route path="users" element={<UserPage />} />
                 <Route path="complaints" element={<ComplaintManagementPage />} />
               </Route>
