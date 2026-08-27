@@ -10,7 +10,7 @@ const METHODS = [
 
 const METHOD_GOI = [{ value: 'SUBSCRIPTION', label: 'Gói tháng' }];
 
-export default function PaymentStep({ step = 4, result, paid, paying, onPay, onNext, onVnPay }) {
+export default function PaymentStep({ step = 4, result, paid, paying, onPay, onNext, onVnPay, daDoiChieu = true }) {
   // Xe con han goi thi tien gui da la 0. Neu khong con phu phi nao thi
   // khong thu gi ca — chi ghi nhan tra bang goi roi mo barrier.
   const traBangGoi = !!result?.freeParking && Number(result?.amountTotal || 0) === 0;
@@ -54,10 +54,13 @@ export default function PaymentStep({ step = 4, result, paid, paying, onPay, onN
         block
         size="large"
         loading={paying}
+        disabled={!daDoiChieu}
         onClick={() => (method === 'VNPAY' ? onVnPay() : onPay(method))}
         style={{
           height: 60, fontSize: 17, fontWeight: 700,
-          background: '#2e7d4f', borderColor: '#2e7d4f', color: '#fff',
+          background: daDoiChieu ? '#2e7d4f' : '#d9d9d9',
+          borderColor: daDoiChieu ? '#2e7d4f' : '#d9d9d9',
+          color: daDoiChieu ? '#fff' : '#8c8c8c',
         }}
       >
         {method === 'VNPAY' ? 'HIỆN MÃ QR CHO KHÁCH QUÉT'
@@ -65,7 +68,8 @@ export default function PaymentStep({ step = 4, result, paid, paying, onPay, onN
           : 'ĐÃ THU TIỀN — MỞ BARRIER'}
       </Button>
       <p style={{ color: '#c0392b', fontSize: 12, textAlign: 'center', marginTop: 8, marginBottom: 0 }}>
-        {method === 'VNPAY' ? 'Khách quét xong, màn hình tự chuyển.'
+        {!daDoiChieu ? 'Chưa tích đủ hai ô đối chiếu biển số và mặt tài xế ở trên.'
+          : method === 'VNPAY' ? 'Khách quét xong, màn hình tự chuyển.'
           : traBangGoi ? 'Không thu tiền — xe còn hạn gói.'
           : 'Bấm xong không rút lại được.'}
       </p>

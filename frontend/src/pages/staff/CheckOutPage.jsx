@@ -19,6 +19,8 @@ export default function CheckOutPage() {
   // true khi vé quét ra còn thiếu ảnh, tức là có thêm một bước chụp ảnh
   const [photoStep, setPhotoStep] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  // nhan vien phai tich xac nhan hai anh bien so va mat truoc khi mo barrier
+  const [daDoiChieu, setDaDoiChieu] = useState(false);
 
   const nextVehicle = () => {
     setTicket(null);
@@ -26,6 +28,7 @@ export default function CheckOutPage() {
     setPaid(false);
     setPhotoStep(false);
     setQrOpen(false);
+    setDaDoiChieu(false);
   };
 
   const findTicket = async (code) => {
@@ -97,7 +100,7 @@ export default function CheckOutPage() {
           onNext={paid ? null : nextVehicle}
         />
 
-        {ticket && <EntryPhotos ticketCode={ticket} />}
+        {ticket && <EntryPhotos ticketCode={ticket} onXacNhan={setDaDoiChieu} />}
 
         {ticket && !result && <ExitPhotos step={2} onUpload={uploadPhotos} loading={busy} />}
 
@@ -112,6 +115,7 @@ export default function CheckOutPage() {
               paying={busy}
               onPay={pay}
               onVnPay={() => setQrOpen(true)}
+              daDoiChieu={daDoiChieu}
             />
           </>
         )}
